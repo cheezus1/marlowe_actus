@@ -48,16 +48,16 @@ data BoundTypes = INF | SUP
 data ContractState = ContractState
   { t0  :: Day
   , tmd :: Day
-  , nvl :: Double
-  , nrt :: Double
-  , nac :: Double
+  , nt  :: Double
+  , ipnr :: Double
+  , ipac :: Double
   , fac :: Double
   , nsc :: Double
   , isc :: Double
   , prf :: ContractStatus
-  , led :: Day
-  , npr :: Double
-  , icb :: Double
+  , sd :: Day
+  , prnxt :: Double
+  , ipcb :: Double
   } deriving (Show)
 
 data ContractConfig = ContractConfig
