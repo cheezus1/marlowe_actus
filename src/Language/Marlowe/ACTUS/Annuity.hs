@@ -55,14 +55,14 @@ stateInit config@ContractConfig{..} =
                     )
             in
               incrementDate' tPrev prcl n
-      nvl =
+      nt =
         if initialExchangeDate > t0 then 0.0
         else (contractRoleSign (fromJust contractRole)) * notionalPrincipal
-      nrt =
+      ipnr =
         if initialExchangeDate > t0 then 0.0
         else nominalInterestRate
-      nac =
-        if nominalInterestRate == 0.0 then 0.0
+      ipac =
+        if isNothing nominalInterestRate then 0.0
         else
           if isJust accruedInterest then fromJust accruedInterest
           else
@@ -70,7 +70,7 @@ stateInit config@ContractConfig{..} =
                 yearFrac =
                   yearFraction dayCountConvention tPrev t0 (fromJust maturityDate)
             in
-              yearFrac * nvl * nrt
+              yearFrac * nt * ipnr
       fac =
         if isNothing feeRate then 0.0
         else
@@ -80,7 +80,7 @@ stateInit config@ContractConfig{..} =
               Just FB_N ->
                 let tPrev = eventScheduleCycleDatesBound config SUP IP (< t0) -- TODO: check - missing in comments
                 in
-                  (yearFraction dayCountConvention tPrev t0 (fromJust maturityDate)) * nvl * (fromJust feeRate)
+                  (yearFraction dayCountConvention tPrev t0 (fromJust maturityDate)) * nt * (fromJust feeRate)
               _ ->
                 let tFPPrev = eventScheduleCycleDatesBound config SUP FP (< t0)
                     tFPNext = eventScheduleCycleDatesBound config INF FP (> t0)
