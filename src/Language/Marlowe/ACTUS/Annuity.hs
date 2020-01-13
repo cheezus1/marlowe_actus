@@ -100,18 +100,21 @@ stateInit config@ContractConfig{..} =
         else
           1.0
       prf = CS_PF
-      led = t0
-      npr =
+      sd = t0
+      prnxt =
         case nextPrincipalRedemptionPayment of
           Just prnxt ->
             (contractRoleSign (fromJust contractRole)) * prnxt
           Nothing ->
-            0.0 -- TODO - todo/todo
-      icb =
-        if interestCalculationBase == ICB_NT then
-          (contractRoleSign (fromJust contractRole)) * notionalPrincipal
+            (notionalPrincipal + ipac) * 1 -- TODO: 1 = todo/todo ?
+      ipcb =
+        if t0 < initialExchangeDate then
+          0.0
         else
-          (contractRoleSign (fromJust contractRole)) * (fromJust interestCalculationBaseAmount)
+          if interestCalculationBase == ICB_NT then
+            (contractRoleSign (fromJust contractRole)) * notionalPrincipal
+          else
+            (contractRoleSign (fromJust contractRole)) * (fromJust interestCalculationBaseAmount)
     in
       ContractState{ t0 = t0
                    , tmd = tmd
@@ -122,9 +125,9 @@ stateInit config@ContractConfig{..} =
                    , nsc = nsc
                    , isc = isc
                    , prf = prf
-                   , led = led
-                   , npr = npr
-                   , icb = icb
+                   , sd = sd
+                   , prnxt = prnxt
+                   , ipcb = ipcb
                    }
 
 generateMarlowe [] _ _ =
