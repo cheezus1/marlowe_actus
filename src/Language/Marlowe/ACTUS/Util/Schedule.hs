@@ -14,6 +14,7 @@ data Schedule = Schedule
   { s :: Maybe Day -- kANX with kANX attribute cycle anchor date of event type k
   , c :: Maybe Cycle -- kCL with kCL event type k’s schedule cycle
   , t :: Maybe Day -- MD with MD the contract’s maturity
+  , b :: Bool -- indicating whether the schedule end date T belongs to the schedule or not
   , dateToExclude :: Maybe Day -- additional field
   } deriving (Show)
 
@@ -35,6 +36,7 @@ generateScheduleDates
     s = s
   , c = c
   , t = t
+  , b = b
   , dateToExclude = dateToExclude
   } =
     let scheduleCycleDates =
@@ -47,7 +49,7 @@ generateScheduleDates
               if isNothing c then
                 [(fromJust s), (fromJust t)]
               else
-                generateCycleDates (fromJust c) (fromJust s) (fromJust t)
+                generateCycleDates (fromJust c) (fromJust s) (fromJust t) b
     in
       if isJust dateToExclude then
         List.delete (fromJust dateToExclude) scheduleCycleDates

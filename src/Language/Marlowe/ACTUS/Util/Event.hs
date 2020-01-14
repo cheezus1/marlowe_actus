@@ -17,28 +17,31 @@ pof_ied_pam ContractState{..} ContractConfig{..} =
     (-1.0) * (notionalPrincipal + premiumDiscountAtIED)
 
 pof_md_pam ContractState{..} ContractConfig{..} =
-  1.0 * (nsc - nt + isc * ipac + fac)
+  1.0 * (nsc - nt + isc * ipac + fac) -- TODO: risk factor
 
-pof_ipci_pam ContractState{..} ContractConfig{..} =
+pof_ipci_pam =
   0.0
 
 stf_ip_pam state@ContractState{..} config@ContractConfig{..} eventDate =
-  let updated_nac = 0.0
+  let updated_ipac = 0.0
       updated_fac =
         case feeBasis of
-          Just FB_N -> fac + (yearFraction dayCountConvention led eventDate (fromJust maturityDate)) * nvl * (fromJust feeRate)
+          Just FB_N ->
+            fac +
+              (yearFraction dayCountConvention sd eventDate (fromJust maturityDate)) *
+              nt * (fromJust feeRate)
           _ ->
             let tFPPrev = eventScheduleCycleDatesBound config SUP FP (< t0)
                 tFPNext = eventScheduleCycleDatesBound config INF FP (> t0)
             in
               ((yearFraction dayCountConvention tFPPrev eventDate (fromJust maturityDate)) /
                 (yearFraction dayCountConvention tFPPrev tFPNext (fromJust maturityDate))) *
-              (fromJust feeRate)
-      updated_led = eventDate
+              (contractRoleSign (fromJust contractRole)) * (fromJust feeRate)
+      updated_sd = eventDate
   in
-    state { nac = updated_nac
-          , fac = updated_fac
-          , led = updated_led
+    state { ipac = updated_ipac
+          , fac  = updated_fac
+          , sd   = updated_sd
           }
 
 pof_fp_pam ContractState{..} ContractConfig{..} eventDate =
@@ -63,24 +66,21 @@ pof_py_pam  ContractState{..} ContractConfig{..} eventDate =
 pof_pp_pam state@ContractState{..} ContractConfig{..} =
   1.0 * 1.0 -- TODO: risk factor x2
 
-pof_cd_pam state@ContractState{..} ContractConfig{..} =
+pof_rrf_pam =
   0.0
 
-pof_rrf_pam state@ContractState{..} ContractConfig{..} =
-  0.0
-
-pof_rr_pam state@ContractState{..} ContractConfig{..} =
+pof_rr_pam =
   0.0
 
 stf_td_pam state@ContractState{..} ContractConfig{..} eventDate =
-  state { nvl = 0.0
-        , nac = 0.0
-        , fac = 0.0
-        , nrt = 0.0
-        , led = eventDate
+  state { nt   = 0.0
+        , ipac = 0.0
+        , fac  = 0.0
+        , ipnr = 0.0
+        , sd   = eventDate
         }
 
-pof_sc_pam state@ContractState{..} ContractConfig{..} =
+pof_sc_pam =
   0.0
 
 pof_ad_pam =
@@ -91,6 +91,9 @@ stf_ad_pam state@ContractState{..} ContractConfig{..} eventDate =
       updated_sd = eventDate
   in
     state { ipac = updated_ipac, sd = updated_sd }
+
+pof_ce_pam =
+  0.0
 
 -- LAM
 
@@ -135,12 +138,12 @@ stf_md_lam state@ContractState{..} config@ContractConfig{..} eventDate =
           , sd = updated_sd}
 
 stf_ipci_lam state@ContractState{..} config@ContractConfig{..} eventDate =
-  let yearFraction' = yearFraction dayCountConvention led eventDate (fromJust maturityDate)
-      updated_nvl = nvl + nac + yearFraction' * nrt * icb
-      updated_nac = 0.0
+  let yearFraction' = yearFraction dayCountConvention sd eventDate (fromJust maturityDate)
+      updated_nt = nt + ipac + yearFraction' * ipnr * ipcb
+      updated_ipac = 0.0
       updated_fac =
         case feeBasis of
-          Just FB_N -> fac + yearFraction' * nvl * (fromJust feeRate)
+          Just FB_N -> fac + yearFraction' * nt * (fromJust feeRate)
           _ ->
             let tFPPrev = eventScheduleCycleDatesBound config SUP FP (< t0)
                 tFPNext = eventScheduleCycleDatesBound config INF FP (> t0)
@@ -148,21 +151,22 @@ stf_ipci_lam state@ContractState{..} config@ContractConfig{..} eventDate =
               ((yearFraction dayCountConvention tFPPrev eventDate (fromJust maturityDate)) /
                 (yearFraction dayCountConvention tFPPrev tFPNext (fromJust maturityDate))) *
               (fromJust feeRate)
-      updated_icb =
-        if interestCalculationBase /= ICB_NT then icb
-        else updated_nvl
-      updated_led = eventDate
+      updated_ipcb =
+        if interestCalculationBase /= ICB_NT then ipcb
+        else updated_nt
+      updated_sd = eventDate
   in
-    state { nvl = updated_nvl
-          , nac = updated_nac
-          , fac = updated_fac
-          , icb = updated_icb
-          , led = updated_led
+    state { nt   = updated_nt
+          , ipac = updated_ipac
+          , fac  = updated_fac
+          , ipcb = updated_ipcb
+          , sd   = updated_sd
           }
 
 pof_ip_lam state@ContractState{..} ContractConfig{..} eventDate =
-  (contractDefault prf) * isc * (nac +
-    (yearFraction dayCountConvention led eventDate (fromJust maturityDate)) * nrt * icb)
+   -- TODO: risk factor
+  1 * isc * (ipac +
+    (yearFraction dayCountConvention sd eventDate (fromJust maturityDate)) * ipnr * ipcb)
 
 stf_fp_lam state@ContractState{..} ContractConfig{..} eventDate =
   let updated_ipac = ipac +
@@ -186,7 +190,7 @@ stf_py_lam state@ContractState{..} config@ContractConfig{..} eventDate =
                 tFPNext = eventScheduleCycleDatesBound config INF FP (> t0)
             in
               ((yearFraction dayCountConvention tFPPrev eventDate (fromJust maturityDate)) /
-                (yearFraction dayCountConvention led eventDate (fromJust maturityDate))) *
+                (yearFraction dayCountConvention tFPPrev tFPNext (fromJust maturityDate))) *
               (contractRoleSign (fromJust contractRole)) *
               (fromJust feeRate)
       updated_sd = eventDate
@@ -223,28 +227,6 @@ stf_pp_lam state@ContractState{..} config@ContractConfig{..} eventDate =
           , sd = updated_sd
           }
 
-stf_cd_lam state@ContractState{..} config@ContractConfig{..} eventDate =
-  let yearFraction' = yearFraction dayCountConvention led eventDate (fromJust maturityDate)
-      updated_nac = nac + yearFraction' * nrt * icb
-      updated_fac =
-        case feeBasis of
-          Just FB_N -> fac + yearFraction' * nvl * (fromJust feeRate)
-          _ ->
-            let tFPPrev = eventScheduleCycleDatesBound config SUP FP (< t0)
-                tFPNext = eventScheduleCycleDatesBound config INF FP (> t0)
-            in
-              ((yearFraction dayCountConvention tFPPrev eventDate (fromJust maturityDate)) /
-                (yearFraction dayCountConvention tFPPrev tFPNext (fromJust maturityDate))) *
-              (fromJust feeRate)
-      updated_prf = CS_DF
-      updated_led = eventDate
-  in
-    state { nac = updated_nac
-          , fac = updated_fac
-          , prf = updated_prf
-          , led = updated_led
-          }
-
 pof_prd_lam ContractState{..} ContractConfig{..} eventDate =
   1.0 * (contractRoleSign (fromJust contractRole)) * (-1) * ((fromJust priceAtPurchaseDate) + ipac +
     (yearFraction dayCountConvention sd eventDate (fromJust maturityDate)) * ipnr * ipcb)
@@ -271,67 +253,68 @@ stf_prd_lam state@ContractState{..} config@ContractConfig{..} eventDate =
           }
 
 stf_sc_lam state@ContractState{..} config@ContractConfig{..} eventDate =
-  let yearFraction' = yearFraction dayCountConvention led eventDate (fromJust maturityDate)
-      updated_nac = nac + yearFraction' * nrt * icb
+  let yearFraction' = yearFraction dayCountConvention sd eventDate (fromJust maturityDate)
+      updated_ipac = ipac + yearFraction' * ipnr * ipcb
       updated_fac =
         case feeBasis of
-          Just FB_N -> fac + yearFraction' * nvl * (fromJust feeRate)
+          Just FB_N -> fac + yearFraction' * nt * (fromJust feeRate)
           _ ->
             let tFPPrev = eventScheduleCycleDatesBound config SUP FP (< t0)
                 tFPNext = eventScheduleCycleDatesBound config INF FP (> t0)
             in
               ((yearFraction dayCountConvention tFPPrev eventDate (fromJust maturityDate)) /
                 (yearFraction dayCountConvention tFPPrev tFPNext (fromJust maturityDate))) *
-              (fromJust feeRate)
-      scef = fromJust scalingEffect
+              (contractRoleSign (fromJust contractRole)) * (fromJust feeRate)
       updated_nsc =
-        if scef == SE_000 || scef == SE_00M || scef == SE_I00 || scef == SE_I0M then
-          nsc
+        if scalingEffect == SE_000 || scalingEffect == SE_00M ||
+          scalingEffect == SE_I00 || scalingEffect == SE_I0M then
+            nsc
         else
           (0 - (fromJust scalingIndexAtStatusDate)) / (fromJust scalingIndexAtStatusDate) -- TODO: risk factor
       updated_isc =
-        if scef == SE_000 || scef == SE_0N0 || scef == SE_00M || scef == SE_0NM then
-          isc
+        if scalingEffect == SE_000 || scalingEffect == SE_0N0 ||
+          scalingEffect == SE_00M || scalingEffect == SE_0NM then
+            isc
         else
           (0 - (fromJust scalingIndexAtStatusDate)) / (fromJust scalingIndexAtStatusDate) -- TODO: risk factor
-      updated_led = eventDate
+      updated_sd = eventDate
   in
-    state { nac = updated_nac
-          , fac = updated_fac
-          , nsc = updated_nsc
-          , isc = updated_isc
-          , led = updated_led
+    state { ipac = updated_ipac
+          , fac  = updated_fac
+          , nsc  = updated_nsc
+          , isc  = updated_isc
+          , sd   = updated_sd
           }
 
 pof_td_lam ContractState{..} ContractConfig{..} eventDate =
-  (contractDefault prf) * (contractRoleSign (fromJust contractRole)) * ((fromJust priceAtTerminationDate) + nac +
-    (yearFraction dayCountConvention led eventDate (fromJust maturityDate)) * nrt * icb)
+   -- TODO: 1 = risk factor
+  1 * (contractRoleSign (fromJust contractRole)) * ((fromJust priceAtTerminationDate) + ipac +
+    (yearFraction dayCountConvention sd eventDate (fromJust maturityDate)) * ipnr * ipcb)
 
-pof_ipcb_lam ContractState{..} ContractConfig{..} eventDate =
+pof_ipcb_lam =
   0.0
 
 stf_ipcb_lam state@ContractState{..} config@ContractConfig{..} eventDate =
-  let yearFraction' = yearFraction dayCountConvention led eventDate (fromJust maturityDate)
-      updated_icb = nvl
-      updated_nac = nac + yearFraction' * nrt * icb
+  let yearFraction' = yearFraction dayCountConvention sd eventDate (fromJust maturityDate)
+      updated_ipcb = nt
+      updated_ipac = ipac + yearFraction' * ipnr * ipcb
       updated_fac =
         case feeBasis of
-          Just FB_N -> fac + yearFraction' * nvl * (fromJust feeRate)
+          Just FB_N -> fac + yearFraction' * nt * (fromJust feeRate)
           _ ->
             let tFPPrev = eventScheduleCycleDatesBound config SUP FP (< t0)
                 tFPNext = eventScheduleCycleDatesBound config INF FP (> t0)
             in
               ((yearFraction dayCountConvention tFPPrev eventDate (fromJust maturityDate)) /
                 (yearFraction dayCountConvention tFPPrev tFPNext (fromJust maturityDate))) *
-              (fromJust feeRate)
-      updated_led = led
+              (contractRoleSign (fromJust contractRole)) * (fromJust feeRate)
+      updated_sd = eventDate
   in
-    state { icb = updated_icb
-          , nac = updated_nac
-          , fac = updated_fac
-          , led = updated_led
+    state { ipcb = updated_ipcb
+          , ipac = updated_ipac
+          , fac  = updated_fac
+          , sd   = updated_sd
           }
-
 
 -- LAX
 -- NAM
@@ -355,7 +338,7 @@ stf_pr_nam state@ContractState{..} config@ContractConfig{..} eventDate =
               contractRoleSign (fromJust contractRole) *
               (fromJust feeRate)
       updated_ipcb =
-        if interestCalculationBase /= ICB_NT then icb
+        if interestCalculationBase /= ICB_NT then ipcb
         else updated_nt
       updated_sd = eventDate
   in
@@ -369,56 +352,69 @@ stf_pr_nam state@ContractState{..} config@ContractConfig{..} eventDate =
 -- ANN
 
 stf_rrf_ann state@ContractState{..} config@ContractConfig{..} eventDate =
-  let yearFraction' = yearFraction dayCountConvention led eventDate (fromJust maturityDate)
-      updated_nac = nac + yearFraction' * nrt * icb
+  let yearFraction' = yearFraction dayCountConvention sd eventDate (fromJust maturityDate)
+      updated_ipac = ipac + yearFraction' * ipnr * ipcb
       updated_fac =
         case feeBasis of
-          Just FB_N -> fac + yearFraction' * nvl * (fromJust feeRate)
+          Just FB_N -> fac + yearFraction' * nt * (fromJust feeRate)
           _ ->
             let tFPPrev = eventScheduleCycleDatesBound config SUP FP (< t0)
                 tFPNext = eventScheduleCycleDatesBound config INF FP (> t0)
             in
               ((yearFraction dayCountConvention tFPPrev eventDate (fromJust maturityDate)) /
                 (yearFraction dayCountConvention tFPPrev tFPNext (fromJust maturityDate))) *
-              (fromJust feeRate)
-      updated_nrt = (fromJust nextResetRate)
+              (contractRoleSign (fromJust contractRole)) * (fromJust feeRate)
+      updated_ipnr = (fromJust nextResetRate)
       -- TODO:
       -- check (tmd must be updated_tmd??) - Tmdt+ is not stated in the document
-      -- check (nvl must be updated_nvl) - Nvlt+ is not stated in the document
-      updated_npr = calculateAnnuity config eventDate tmd nvl updated_nac updated_nrt
-      updated_led = eventDate
+      -- check (nt must be updated_nt) - Nt+ is not stated in the document
+      updated_prnxt = calculateAnnuity config eventDate tmd nt updated_ipac updated_ipnr
+      updated_sd = eventDate
   in
-    state { nac = updated_nac
-          , fac = updated_fac
-          , nrt = updated_nrt
-          , led = updated_led
+    state { ipac  = updated_ipac
+          , fac   = updated_fac
+          , ipnr  = updated_ipnr
+          , prnxt = updated_prnxt
+          , sd    = updated_sd
           }
 
 stf_rr_ann state@ContractState{..} config@ContractConfig{..} eventDate =
-  let yearFraction' = yearFraction dayCountConvention led eventDate (fromJust maturityDate)
-      updated_nac = nac + yearFraction' * nrt * icb
+  let yearFraction' = yearFraction dayCountConvention sd eventDate (fromJust maturityDate)
+      updated_ipac = ipac + yearFraction' * ipnr * ipcb
       updated_fac =
         case feeBasis of
-          Just FB_N -> fac + yearFraction' * nvl * (fromJust feeRate)
+          Just FB_N -> fac + yearFraction' * nt * (fromJust feeRate)
           _ ->
             let tFPPrev = eventScheduleCycleDatesBound config SUP FP (< t0)
                 tFPNext = eventScheduleCycleDatesBound config INF FP (> t0)
             in
               ((yearFraction dayCountConvention tFPPrev eventDate (fromJust maturityDate)) /
                 (yearFraction dayCountConvention tFPPrev tFPNext (fromJust maturityDate))) *
-              (fromJust feeRate)
-      updated_nrt = 0.0 -- TODO - risk factor
-       -- TODO:
-       -- check (tmd must be updated_tmd??) - Tmdt+ is not stated in the document
-       -- check (nvl must be updated_nvl) - Nvlt+ is not stated in the document
-      updated_npr = calculateAnnuity config eventDate tmd nvl updated_nac updated_nrt
-      updated_led = eventDate
+              (contractRoleSign (fromJust contractRole)) * (fromJust feeRate)
+      orf = 1 -- TODO: risk factor
+      deltaR =
+        min
+          (max
+            (orf * rateMultiplier + rateSpread - ipnr)
+            (fromJust periodFloor))
+          (fromJust periodCap)
+      updated_ipnr =
+        min
+          (max
+            (ipnr + deltaR)
+            (fromJust lifeFloor))
+          (fromJust lifeCap)
+      -- TODO:
+      -- check (tmd must be updated_tmd??) - Tmdt+ is not stated in the document
+      -- check (nt must be updated_nt) - Nt+ is not stated in the document
+      updated_prnxt = calculateAnnuity config eventDate tmd nt updated_ipac updated_ipnr
+      updated_sd = eventDate
   in
-    state { nac = updated_nac
-          , fac = updated_fac
-          , nrt = updated_nrt
-          , npr = updated_npr
-          , led = updated_led
+    state { ipac  = updated_ipac
+          , fac   = updated_fac
+          , ipnr  = updated_ipnr
+          , prnxt = updated_prnxt
+          , sd    = updated_sd
           }
 
 -- CLM

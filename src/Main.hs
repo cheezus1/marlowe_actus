@@ -103,6 +103,8 @@ main =
         , cycleOfInterestPayment = Just "1Y+"
         , accruedInterest = Just 0.0
         , capitalizationEndDate = Nothing
+        , cycleAnchorDateOfInterestCalculationBase = Nothing
+        , cycleOfInterestCalculationBase = Nothing
         , interestCalculationBase = ICB_NT -- ICB_NT
         , interestCalculationBaseAmount = Just 0.0
 
@@ -113,15 +115,22 @@ main =
         , cycleAnchorDateOfPrincipalRedemption = Just (fromGregorian 2017 1 2)
         , cycleOfPrincipalRedemption = Just "1Y+"
         , nextPrincipalRedemptionPayment = Just 0.0
+        , purchaseDate = Nothing
         , priceAtPurchaseDate = Just 0.0
+        , terminationDate = Nothing
         , priceAtTerminationDate = Just 0.0
         , marketObjectCodeOfScalingIndex = Nothing
         , scalingIndexAtStatusDate = Just 0.0
-        , scalingEffect = Just SE_000 -- SE_000
+        , cycleAnchorDateOfScalingIndex = Nothing
+        , cycleOfScalingIndex = Nothing
+        , scalingEffect = SE_000 -- SE_000
 
         -- Optionality
+        , cycleAnchorDateOfOptionality = Nothing
+        , cycleOfOptionality = Nothing
         , penaltyType = PT_O -- PT_O
         , penaltyRate = 0.0 -- 0.0
+        , prepaymentEffect = PE_N -- PE_N
 
         -- Rate Reset
         , cycleAnchorDateOfRateReset = Just (fromGregorian 2016 1 1)
@@ -132,9 +141,10 @@ main =
         , lifeFloor = Just 0.0
         , lifeCap = Just 0.0
         , nextResetRate = Just 0.1
+        , rateMultiplier = 1.0 -- 1.0
         }
       initState = Annuity.stateInit config
-      generatedSchedules = generateSchedules [IED, IP, RR, RRF, PR] config
+      generatedSchedules = generateSchedules Annuity.events config
       scheduledEvents = scheduleEvents generatedSchedules
   in
     -- print "dasdasdasd"

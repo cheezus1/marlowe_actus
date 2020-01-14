@@ -13,19 +13,26 @@ import Language.Marlowe.ACTUS.Util.Conventions.DayCount
 import Language.Marlowe.ACTUS.Util.Conventions.EndOfMonthShift
 
 data Event =  IED
-            | IPCI
-            | IP
             | FP
             | PR
+            | PD
+            | PRF
             | PY
             | PP
-            | CD
+            | IP
+            | IPCI
+            | CE
             | RRF
             | RR
+            | DV
             | PRD
+            | MR
             | TD
             | SC
             | IPCB
+            | MD
+            | XD
+            | STD
             | AD deriving (Show, Eq, Ord)
 
 data ScalingEffect =  SE_000
@@ -41,7 +48,9 @@ data InterestCalculationBase = ICB_NT | ICB_NTIED | ICB_NTL deriving (Show, Eq)
 
 data FeeBasis = FB_A | FB_N deriving (Show, Eq)
 
-data PenaltyType = PT_O | PT_A | PT_N | PT_I deriving (Show)
+data PenaltyType = PT_O | PT_A | PT_N | PT_I deriving (Show, Eq)
+
+data PrepaymentEffect = PE_N | PE_A | PE_M deriving (Show, Eq)
 
 data BoundTypes = INF | SUP
 
@@ -78,8 +87,8 @@ data ContractConfig = ContractConfig
   , contractRole :: Maybe ContractRole -- CNTRL
 
   -- Fees
-  , cycleAnchorDateOfFee :: Maybe Day -- FEANX / FPANX
-  , cycleOfFee :: Maybe [Char] -- FECL / FPCL
+  , cycleAnchorDateOfFee :: Maybe Day -- FEANX
+  , cycleOfFee :: Maybe [Char] -- FECL
   , feeBasis :: Maybe FeeBasis -- FEB
   , feeRate :: Maybe Double -- FER
   , feeAccrued :: Maybe Double -- FEAC
@@ -89,6 +98,8 @@ data ContractConfig = ContractConfig
   , cycleOfInterestPayment :: Maybe [Char] -- IPCL
   , accruedInterest :: Maybe Double -- IPAC
   , capitalizationEndDate :: Maybe Day -- IPCED
+  , cycleAnchorDateOfInterestCalculationBase :: Maybe Day -- IPCBANX
+  , cycleOfInterestCalculationBase :: Maybe [Char] -- IPCBCL
   , interestCalculationBase :: InterestCalculationBase -- IPCB
   , interestCalculationBaseAmount :: Maybe Double -- IPCBA
 
@@ -99,15 +110,22 @@ data ContractConfig = ContractConfig
   , cycleAnchorDateOfPrincipalRedemption :: Maybe Day -- PRANX
   , cycleOfPrincipalRedemption :: Maybe [Char] -- PRCL
   , nextPrincipalRedemptionPayment :: Maybe Double -- PRNXT
+  , purchaseDate :: Maybe Day -- PRD
   , priceAtPurchaseDate :: Maybe Double -- PPRD
+  , terminationDate :: Maybe Day -- TD
   , priceAtTerminationDate :: Maybe Double -- PTD
   , marketObjectCodeOfScalingIndex :: Maybe String -- RRMO
   , scalingIndexAtStatusDate :: Maybe Double -- SCIXSD
-  , scalingEffect :: Maybe ScalingEffect -- SCEF
+  , cycleAnchorDateOfScalingIndex :: Maybe Day -- SCANX
+  , cycleOfScalingIndex :: Maybe [Char] -- SCCL
+  , scalingEffect :: ScalingEffect -- SCEF
 
   -- Optionality
+  , cycleAnchorDateOfOptionality :: Maybe Day -- OPANX
+  , cycleOfOptionality :: Maybe [Char] -- OPCL
   , penaltyType :: PenaltyType -- PYTP
   , penaltyRate :: Double -- PYRT
+  , prepaymentEffect :: PrepaymentEffect -- PPEF
 
   -- Rate Reset
   , cycleAnchorDateOfRateReset :: Maybe Day -- RRANX
@@ -118,4 +136,5 @@ data ContractConfig = ContractConfig
   , lifeFloor :: Maybe Double -- RRLF
   , lifeCap :: Maybe Double -- RRLC
   , nextResetRate :: Maybe Double -- RRNXT
+  , rateMultiplier :: Double -- RRMLT
   } deriving (Show)

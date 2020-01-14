@@ -27,7 +27,7 @@ loaner :: PubKey
 loaner = "bob"
 
 events =
-  [IED, IPCI, IP, FP, PR, PY, PP, CD, RRF, RR, PRD, TD, SC, IPCB, AD]
+  [AD, IED, PR, MD, PP, PY, FP, PRD, TD, IP, IPCI, IPCB, RR, RRF, SC, CE]
 
 stateInit config@ContractConfig{..} =
   let t0 = initialExchangeDate
@@ -62,7 +62,7 @@ stateInit config@ContractConfig{..} =
         if initialExchangeDate > t0 then 0.0
         else nominalInterestRate
       ipac =
-        if isNothing nominalInterestRate then 0.0
+        if nominalInterestRate == 0.0 then 0.0
         else
           if isJust accruedInterest then fromJust accruedInterest
           else
@@ -88,15 +88,16 @@ stateInit config@ContractConfig{..} =
                   ((yearFraction dayCountConvention tFPPrev t0 (fromJust maturityDate)) /
                       (yearFraction dayCountConvention tFPPrev tFPNext (fromJust maturityDate))) *
                   (fromJust feeRate)
-      scef = fromJust scalingEffect
       nsc =
-        if scef == SE_0N0 || scef == SE_0NM || scef == SE_IN0 || scef == SE_INM then
-          (fromJust scalingIndexAtStatusDate)
+        if scalingEffect == SE_0N0 || scalingEffect == SE_0NM ||
+          scalingEffect == SE_IN0 || scalingEffect == SE_INM then
+            (fromJust scalingIndexAtStatusDate)
         else
           1.0
       isc =
-        if scef == SE_I00 || scef == SE_IN0 || scef == SE_I0M || scef == SE_INM then
-          (fromJust scalingIndexAtStatusDate)
+        if scalingEffect == SE_I00 || scalingEffect == SE_IN0 ||
+          scalingEffect == SE_I0M || scalingEffect == SE_INM then
+            (fromJust scalingIndexAtStatusDate)
         else
           1.0
       prf = CS_PF
@@ -116,18 +117,18 @@ stateInit config@ContractConfig{..} =
           else
             (contractRoleSign (fromJust contractRole)) * (fromJust interestCalculationBaseAmount)
     in
-      ContractState{ t0 = t0
-                   , tmd = tmd
-                   , nvl = nvl
-                   , nrt = nrt
-                   , nac = nac
-                   , fac = fac
-                   , nsc = nsc
-                   , isc = isc
-                   , prf = prf
-                   , sd = sd
+      ContractState{ t0    = t0
+                   , tmd   = tmd
+                   , nt    = nt
+                   , ipnr  = ipnr
+                   , ipac  = ipac
+                   , fac   = fac
+                   , nsc   = nsc
+                   , isc   = isc
+                   , prf   = prf
+                   , sd    = sd
                    , prnxt = prnxt
-                   , ipcb = ipcb
+                   , ipcb  = ipcb
                    }
 
 generateMarlowe [] _ _ =
@@ -145,17 +146,17 @@ eventsToMarlowe (eventsForDate : rest) _ [] state config =
 eventsToMarlowe scheduledEvents date (event : rest) state@ContractState{..} config =
   let payoff = determinePayoff event date state config
       updatedState@ContractState{
-        nvl = nvl
-      , nrt = nrt
-      , nac = nac
+        nt = nt
+      , ipnr = ipnr
+      , ipac = ipac
       } = determineStateTransition event date state config
   in
     (traceShow event)
     (traceShow date)
     (traceShow ("event value", payoff))
-    (traceShow ("nominal value", nvl))
-    (traceShow ("nominal rate", nrt))
-    (traceShow ("nominal accrued", nac))
+    (traceShow ("nominal value", nt))
+    (traceShow ("nominal rate", ipnr))
+    (traceShow ("nominal accrued", ipac))
     (traceShow updatedState)
     (traceShow "----------------------------")
     (if event == IED then
@@ -177,20 +178,40 @@ eventsToMarlowe scheduledEvents date (event : rest) state@ContractState{..} conf
       (Slot 1)
       Close)
 
-determinePayoff event date state config =
+determinePayoff event eventDate state config =
   case event of
-    IED -> pof_ied_pam state config
-    IP  -> pof_ip_lam state config date
-    PR  -> pof_pr_nam state config date
-    RRF -> pof_rrf_pam state config
-    RR  -> pof_rr_pam state config
-    FP  -> pof_fp_pam state config date
+    AD   -> pof_ad_pam
+    IED  -> pof_ied_pam state config
+    PR   -> pof_pr_nam state config eventDate
+    MD   -> pof_md_pam state config
+    PP   -> pof_pp_pam state config
+    PY   -> pof_py_pam state config eventDate
+    FP   -> pof_fp_pam state config eventDate
+    PRD  -> pof_prd_lam state config eventDate
+    TD   -> pof_td_lam state config eventDate
+    IP   -> pof_ip_lam state config eventDate
+    IPCI -> pof_ipci_pam
+    IPCB -> pof_ipcb_lam
+    RR   -> pof_rr_pam
+    RRF  -> pof_rrf_pam
+    SC   -> pof_sc_pam
+    CE   -> pof_ce_pam
 
 determineStateTransition event eventDate state config =
   case event of
-    IED -> stf_ied_lam state config eventDate
-    IP  -> stf_ip_pam state config eventDate
-    PR  -> stf_pr_nam state config eventDate
-    RRF -> stf_rrf_ann state config eventDate
-    RR  -> stf_rr_ann state config eventDate
-    FP  -> stf_fp_lam state config eventDate
+    AD   -> stf_ad_pam state config eventDate
+    IED  -> stf_ied_lam state config eventDate
+    PR   -> stf_pr_nam state config eventDate
+    MD   -> stf_md_lam state config eventDate
+    PP   -> stf_pp_lam state config eventDate
+    PY   -> stf_py_lam state config eventDate
+    FP   -> stf_fp_lam state config eventDate
+    PRD  -> stf_prd_lam state config eventDate
+    TD   -> stf_td_pam state config eventDate
+    IP   -> stf_ip_pam state config eventDate
+    IPCI -> stf_ipci_lam state config eventDate
+    IPCB -> stf_ipcb_lam state config eventDate
+    RR   -> stf_rr_ann state config eventDate
+    RRF  -> stf_rrf_ann state config eventDate
+    SC   -> stf_sc_lam state config eventDate
+    CE   -> stf_ad_pam state config eventDate

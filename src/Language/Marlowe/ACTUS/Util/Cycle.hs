@@ -42,18 +42,22 @@ createCycle [n, periodChar, stubChar] = Cycle
   , s = mapStub stubChar
   }
 
-generateCycleDates cycle anchorDate maturityDate =
-  generateCycleDates' cycle maturityDate anchorDate [anchorDate]
+generateCycleDates cycle anchorDate maturityDate includeLastDate =
+  generateCycleDates' cycle maturityDate anchorDate includeLastDate [anchorDate]
 
-generateCycleDates' cycle@Cycle{s = stub, ..} maturityDate previousDate cycleDates =
+generateCycleDates' cycle@Cycle{s = stub, ..} maturityDate previousDate includeLastDate cycleDates =
   let nextDate = incrementDate previousDate cycle
   in
     if nextDate > maturityDate then
-      if previousDate == maturityDate || stub == ShortStub then cycleDates
-      else List.delete previousDate cycleDates
+      let cycleDatesWithoutLast = List.delete previousDate cycleDates
+      in
+        if includeLastDate then
+          if previousDate == maturityDate || stub == ShortStub then cycleDates
+          else cycleDatesWithoutLast
+        else
+          cycleDatesWithoutLast
     else
-      generateCycleDates' cycle maturityDate nextDate (List.insert nextDate cycleDates)
-
+      generateCycleDates' cycle maturityDate nextDate includeLastDate (List.insert nextDate cycleDates)
 
 incrementDate date Cycle{..} =
   case p of
