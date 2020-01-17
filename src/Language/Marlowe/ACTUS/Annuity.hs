@@ -31,30 +31,7 @@ events =
 
 stateInit config@ContractConfig{..} =
   let t0 = initialExchangeDate
-      tmd =
-        case maturityDate of
-          Just md ->
-            md
-          Nothing ->
-            let prcl = createCycle (fromJust cycleOfPrincipalRedemption)
-                tPrev =
-                  if isJust cycleAnchorDateOfPrincipalRedemption &&
-                    (fromJust cycleAnchorDateOfPrincipalRedemption) >= t0 then
-                      fromJust cycleAnchorDateOfPrincipalRedemption
-                  else
-                    if incrementDate initialExchangeDate prcl >= t0 then
-                       incrementDate initialExchangeDate prcl
-                    else
-                      eventScheduleCycleDatesBound config SUP PR (< t0)
-                n = ceiling (notionalPrincipal /
-                      ((fromJust nextPrincipalRedemptionPayment) - notionalPrincipal *
-                        (yearFraction dayCountConvention tPrev
-                          (incrementDate tPrev prcl) (fromJust maturityDate)
-                        ) * nominalInterestRate
-                      )
-                    )
-            in
-              incrementDate' tPrev prcl n
+      tmd = calculateTMDt0 config
       nt =
         if initialExchangeDate > t0 then 0.0
         else (contractRoleSign (fromJust contractRole)) * notionalPrincipal

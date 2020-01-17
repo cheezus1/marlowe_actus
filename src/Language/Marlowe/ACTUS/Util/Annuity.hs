@@ -49,7 +49,7 @@ generateSchedules' (event : rest) contractConfig@ContractConfig{..} schedules =
               })]
           MD ->
             [(MD, Schedule{
-              s = maturityDate
+              s = Just (calculateTMDt0 contractConfig)
             , c = Nothing
             , t = Nothing
             , b = True
@@ -299,6 +299,33 @@ generateSchedules' (event : rest) contractConfig@ContractConfig{..} schedules =
              []
   in
     generateSchedules' rest contractConfig (schedules ++ additionalSchedules)
+
+calculateTMDt0 config@ContractConfig{..} =
+  let t0 = initialExchangeDate
+  in
+    case maturityDate of
+      Just md ->
+        md
+      Nothing ->
+        let prcl = createCycle (fromJust cycleOfPrincipalRedemption)
+            tPrev =
+              if isJust cycleAnchorDateOfPrincipalRedemption &&
+                (fromJust cycleAnchorDateOfPrincipalRedemption) >= t0 then
+                  fromJust cycleAnchorDateOfPrincipalRedemption
+              else
+                if incrementDate initialExchangeDate prcl >= t0 then
+                   incrementDate initialExchangeDate prcl
+                else
+                  eventScheduleCycleDatesBound config SUP PR (< t0)
+            n = ceiling (notionalPrincipal /
+                  ((fromJust nextPrincipalRedemptionPayment) - notionalPrincipal *
+                    (yearFraction dayCountConvention tPrev
+                      (incrementDate tPrev prcl) (fromJust maturityDate)
+                    ) * nominalInterestRate
+                  )
+                )
+        in
+          incrementDate' tPrev prcl n
 
 -- TODO: maybe move to another module
 generateEventDates config event =
