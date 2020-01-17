@@ -45,12 +45,12 @@ yearFraction E30_360ISDA startDay endDay maturityDate
         (d2Year, d2Month, d2Day) = toGregorian endDay
         d1ChangedDay = if isLastDayOfMonth d1Year d1Month d1Day then 30
                 else d1Day
-        d2ChangedDay = if isLastDayOfMonth d2Year d2Month d2Day && endDay /= maturityDate && d2Month /= 2 then 30
+        d2ChangedDay = if isLastDayOfMonth d2Year d2Month d2Day && not (endDay == maturityDate && d2Month == 2) then 30
                 else d2Day
     in
-      (360.0 * fromIntegral(d1Year - d2Year) +
-       30.0 * fromIntegral(d1Month - d2Month) +
-       fromIntegral(d1ChangedDay - d2ChangedDay)) / 360.0
+      (360.0 * fromIntegral(d2Year - d1Year) +
+       30.0 * fromIntegral(d2Month - d1Month) +
+       fromIntegral(d2ChangedDay - d1ChangedDay)) / 360.0
   | otherwise = error "Year fraction error: second date must be more recent"
 
 yearFraction E30_360 startDay endDay _
