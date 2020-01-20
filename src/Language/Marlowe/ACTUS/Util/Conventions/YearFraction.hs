@@ -62,10 +62,10 @@ yearFraction E30_360 startDay endDay _
         d2ChangedDay = if d2Day == 31 then 30
                 else d2Day
     in
-      (360.0 * fromIntegral(d1Year - d2Year) +
-       30.0 * fromIntegral(d1Month - d2Month) +
-       fromIntegral(d1ChangedDay - d2ChangedDay)) / 360.0
-  | otherwise = error ("Year fraction error: second date must be more recent" ++ (show startDay) ++ " " ++ (show endDay))
+      (360.0 * fromIntegral(d2Year - d1Year) +
+       30.0 * fromIntegral(d2Month - d1Month) +
+       fromIntegral(d2ChangedDay - d1ChangedDay)) / 360.0
+  | otherwise = error ("Year fraction error: second date must be more recent")
 
 isLastDayOfMonth :: Integer -> Int -> Int -> Bool
 isLastDayOfMonth year month day =
