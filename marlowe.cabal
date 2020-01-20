@@ -11,7 +11,7 @@ cabal-version:          >= 1.10
 test-suite unit-tests
   type:          exitcode-stdio-1.0
   main-is:       Spec.hs
-  hs-source-dirs: tst/unit
+  hs-source-dirs: test/ACTUS
 
   build-depends: base
                , hspec
