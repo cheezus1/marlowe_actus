@@ -8,9 +8,6 @@ import Language.Marlowe.ACTUS.Annuity as Annuity
 import Language.Marlowe.ACTUS.Util.Annuity
 import Language.Marlowe.ACTUS.Util.Event
 import Language.Marlowe.ACTUS.Util.Schedule
-import Language.Marlowe.ACTUS.Util.Conventions.DayCount
-import Language.Marlowe.ACTUS.Util.Conventions.BusinessDayShift
-import Language.Marlowe.ACTUS.Util.Conventions.EndOfMonthShift
 import Language.Marlowe.ACTUS.Util.Conventions.ContractRoleSign
 import Language.Marlowe.ACTUS.Util.Conventions.YearFraction
 
@@ -80,14 +77,14 @@ main =
         ContractConfig{
         -- General
           nominalInterestRate = 0.05
-        , dayCountConvention = E30_360
+        , dayCountConvention = DCC_E30_360
         , initialExchangeDate = fromGregorian 2015 1 2
         , notionalPrincipal = 1000
 
         -- Calendar
         , calendar = NoCalendar -- NoCalendar
         , businessDayConvention = BDC_SCF -- BDC_SCF
-        , endOfMonthConvention = EOM_SD -- EOM_SD
+        , endOfMonthConvention = EOMC_SD -- EOM_SD
 
         -- Contract Identification
         , statusDate = Just (fromGregorian 2015 1 1)
@@ -149,4 +146,4 @@ main =
       generatedSchedules = generateSchedules Annuity.events config
       scheduledEvents = scheduleEvents generatedSchedules
   in
-    (print (yearFraction E30_360 (fromGregorian 2006 1 31) (fromGregorian 2006 2 28) (fromGregorian 2008 2 29)))
+    (print (yearFraction DCC_E30_360 (fromGregorian 2006 1 31) (fromGregorian 2006 2 28) (fromGregorian 2008 2 29)))

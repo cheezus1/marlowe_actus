@@ -3,10 +3,10 @@ module Language.Marlowe.ACTUS.Util.Conventions.YearFraction where
 import Data.Time
 import GHC.Stack
 
-import Language.Marlowe.ACTUS.Util.Conventions.DayCount
+import Language.Marlowe.ACTUS.Definitions
 
 yearFraction :: HasCallStack => DCC -> Day -> Day -> Day -> Double
-yearFraction A_AISDA startDay endDay _
+yearFraction DCC_A_AISDA startDay endDay _
   | startDay <= endDay =
     let (d1Year, _, _) = toGregorian startDay
         (d2Year, _, _) = toGregorian endDay
@@ -25,21 +25,21 @@ yearFraction A_AISDA startDay endDay _
           (firstFractionDays / d1YearFraction) + (secondFractionDays / d2YearFraction)
   | otherwise = error "Year fraction error: second date must be more recent"
 
-yearFraction A_360 startDay endDay _
+yearFraction DCC_A_360 startDay endDay _
   | startDay <= endDay =
     let daysDiff = fromIntegral(diffDays endDay startDay)
     in
       daysDiff / 360.0
   | otherwise = error "Year fraction error: second date must be more recent"
 
-yearFraction A_365 startDay endDay _
+yearFraction DCC_A_365 startDay endDay _
   | startDay <= endDay =
     let daysDiff = fromIntegral(diffDays endDay startDay)
     in
       daysDiff / 365.0
   | otherwise = error "Year fraction error: second date must be more recent"
 
-yearFraction E30_360ISDA startDay endDay maturityDate
+yearFraction DCC_E30_360ISDA startDay endDay maturityDate
   | startDay <= endDay =
     let (d1Year, d1Month, d1Day) = toGregorian startDay
         (d2Year, d2Month, d2Day) = toGregorian endDay
@@ -53,7 +53,7 @@ yearFraction E30_360ISDA startDay endDay maturityDate
        fromIntegral(d2ChangedDay - d1ChangedDay)) / 360.0
   | otherwise = error "Year fraction error: second date must be more recent"
 
-yearFraction E30_360 startDay endDay _
+yearFraction DCC_E30_360 startDay endDay _
   | startDay <= endDay =
     let (d1Year, d1Month, d1Day) = toGregorian startDay
         (d2Year, d2Month, d2Day) = toGregorian endDay

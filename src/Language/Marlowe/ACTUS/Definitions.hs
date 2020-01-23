@@ -3,14 +3,27 @@ module Language.Marlowe.ACTUS.Definitions where
 import Data.Maybe
 import Data.Time
 
-import Language.Marlowe.ACTUS.Util.Schedule
-import Language.Marlowe.ACTUS.Util.Cycle as Cycle
-import Language.Marlowe.ACTUS.Util.Conventions.BusinessDayShift
-import Language.Marlowe.ACTUS.Util.Conventions.ContractDefault
-import Language.Marlowe.ACTUS.Util.Conventions.ContractRoleSign
-import Language.Marlowe.ACTUS.Util.Conventions.YearFraction
-import Language.Marlowe.ACTUS.Util.Conventions.DayCount
-import Language.Marlowe.ACTUS.Util.Conventions.EndOfMonthShift
+data EOMC = EOMC_EOM
+          | EOMC_SD deriving (Show)
+
+data BDC =  BDC_NULL
+          | BDC_SCF
+          | BDC_SCMF
+          | BDC_CSF
+          | BDC_CSMF
+          | BDC_SCP
+          | BDC_SCMP
+          | BDC_CSP
+          | BDC_CSMP deriving (Show)
+
+data DCC =  DCC_A_AISDA
+          | DCC_A_360
+          | DCC_A_365
+          | DCC_E30_360ISDA
+          | DCC_E30_360
+          | DCC_B_252 deriving (Show)
+
+data CalendarType = NoCalendar | MondayToFriday deriving (Show)
 
 data Event =  IED
             | FP
@@ -35,6 +48,28 @@ data Event =  IED
             | STD
             | AD deriving (Show, Eq, Ord)
 
+data ContractRole = CR_RPA -- Real position asset
+                  | CR_RPL -- Real position liability
+                  | CR_CLO -- Role of a collateral
+                  | CR_CNO -- Role of a close-out-netting
+                  | CR_COL -- Role of an underlying to a collateral
+                  | CR_LG  -- Long position
+                  | CR_ST  -- Short position
+                  | CR_BUY -- Protection buyer
+                  | CR_SEL -- Protection seller
+                  | CR_RFL -- Receive first leg
+                  | CR_PFL -- Pay first leg
+                  | CR_RF  -- Receive fix leg
+                  | CR_PF  -- Pay fix leg
+                  deriving (Show, Eq)
+
+-- CS – Indicates different states of the contract from performance to default
+data ContractStatus = CS_PF -- performant
+                    | CS_DL -- delayed
+                    | CS_DQ -- delinquent
+                    | CS_DF -- default
+                    deriving (Show, Eq)
+
 data ScalingEffect =  SE_000
                     | SE_0N0
                     | SE_00M
@@ -53,6 +88,30 @@ data PenaltyType = PT_O | PT_A | PT_N | PT_I deriving (Show, Eq)
 data PrepaymentEffect = PE_N | PE_A | PE_M deriving (Show, Eq)
 
 data BoundTypes = INF | SUP
+
+data Period = P_D -- Day
+            | P_W -- Week
+            | P_M -- Month
+            | P_Q -- Quarter
+            | P_H -- Half Year
+            | P_Y -- Year
+            deriving (Show, Eq, Ord)
+
+data Stub = ShortStub | LongStub deriving (Show, Eq, Ord)
+
+data Cycle = Cycle
+  { n :: Integer
+  , p :: Period
+  , stub :: Stub
+  } deriving (Show, Eq, Ord)
+
+data Schedule = Schedule
+  { s :: Maybe Day -- kANX with kANX attribute cycle anchor date of event type k
+  , c :: Maybe Cycle -- kCL with kCL event type k’s schedule cycle
+  , t :: Maybe Day -- MD with MD the contract’s maturity
+  , b :: Bool -- indicating whether the schedule end date T belongs to the schedule or not
+  , dateToExclude :: Maybe Day -- additional field
+  } deriving (Show)
 
 data ContractState = ContractState
   { t0  :: Day
@@ -80,7 +139,7 @@ data ContractConfig = ContractConfig
   -- Calendar
   , calendar :: CalendarType -- CLDR
   , businessDayConvention :: BDC -- BDC
-  , endOfMonthConvention :: EOM -- EOMC
+  , endOfMonthConvention :: EOMC -- EOMC
 
   -- Contract Identification
   , statusDate :: Maybe Day -- SD (t0)

@@ -1,20 +1,6 @@
 module Language.Marlowe.ACTUS.Util.Conventions.ContractRoleSign where
 
--- CNTRL
-data ContractRole = CR_RPA -- Real position asset
-                  | CR_RPL -- Real position liability
-                  | CR_CLO -- Role of a collateral
-                  | CR_CNO -- Role of a close-out-netting
-                  | CR_COL -- Role of an underlying to a collateral
-                  | CR_LG  -- Long position
-                  | CR_ST  -- Short position
-                  | CR_BUY -- Protection buyer
-                  | CR_SEL -- Protection seller
-                  | CR_RFL -- Receive first leg
-                  | CR_PFL -- Pay first leg
-                  | CR_RF  -- Receive fix leg
-                  | CR_PF  -- Pay fix leg
-                  deriving (Show, Eq)
+import Language.Marlowe.ACTUS.Definitions
 
 -- R
 contractRoleSign role = case role of

@@ -12,13 +12,8 @@ import Language.Marlowe.ACTUS.Definitions
 import Language.Marlowe.ACTUS.Util.Annuity
 import Language.Marlowe.ACTUS.Util.Schedule
 import Language.Marlowe.ACTUS.Util.Event
-import Language.Marlowe.ACTUS.Util.Cycle as Cycle
-import Language.Marlowe.ACTUS.Util.Conventions.BusinessDayShift
-import Language.Marlowe.ACTUS.Util.Conventions.ContractDefault
 import Language.Marlowe.ACTUS.Util.Conventions.ContractRoleSign
 import Language.Marlowe.ACTUS.Util.Conventions.YearFraction
-import Language.Marlowe.ACTUS.Util.Conventions.DayCount
-import Language.Marlowe.ACTUS.Util.Conventions.EndOfMonthShift
 
 loanee :: PubKey
 loanee = "alice"
@@ -53,15 +48,13 @@ stateInit config@ContractConfig{..} =
         else
           if isJust feeAccrued then fromJust feeAccrued
           else
-            case feeBasis of
-              Just FB_N ->
-                let tPrev = eventScheduleCycleDatesBound config SUP IP (< t0) -- TODO: check - missing in comments
-                in
-                  (yearFraction dayCountConvention tPrev t0 (fromJust maturityDate)) * nt * (fromJust feeRate)
-              _ ->
-                let tFPPrev = eventScheduleCycleDatesBound config SUP FP (< t0)
-                    tFPNext = eventScheduleCycleDatesBound config INF FP (> t0)
-                in
+            let tFPPrev = eventScheduleCycleDatesBound config SUP FP (< t0)
+                tFPNext = eventScheduleCycleDatesBound config INF FP (> t0)
+            in
+              case feeBasis of
+                Just FB_N ->
+                  (yearFraction dayCountConvention tFPPrev t0 (fromJust maturityDate)) * nt * (fromJust feeRate)
+                _ ->
                   ((yearFraction dayCountConvention tFPPrev t0 (fromJust maturityDate)) /
                       (yearFraction dayCountConvention tFPPrev tFPNext (fromJust maturityDate))) *
                   (fromJust feeRate)

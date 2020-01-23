@@ -5,21 +5,7 @@ import Data.Char
 import Data.Time.Calendar
 import qualified Data.List as List
 
-data Period = P_D -- Day
-            | P_W -- Week
-            | P_M -- Month
-            | P_Q -- Quarter
-            | P_H -- Half Year
-            | P_Y -- Year
-            deriving (Show, Eq, Ord)
-
-data Stub = ShortStub | LongStub deriving (Show, Eq, Ord)
-
-data Cycle = Cycle
-  { n :: Integer
-  , p :: Period
-  , s :: Stub
-  } deriving (Show, Eq, Ord)
+import Language.Marlowe.ACTUS.Definitions
 
 mapPeriod :: Char -> Period
 mapPeriod periodChar = case periodChar of
@@ -39,13 +25,13 @@ createCycle :: [Char] -> Cycle
 createCycle [n, periodChar, stubChar] = Cycle
   { n = toInteger (digitToInt n)
   , p = mapPeriod periodChar
-  , s = mapStub stubChar
+  , stub = mapStub stubChar
   }
 
 generateCycleDates cycle anchorDate maturityDate includeLastDate =
   generateCycleDates' cycle maturityDate anchorDate includeLastDate []
 
-generateCycleDates' cycle@Cycle{s = stub, ..} maturityDate currentDate includeLastDate cycleDates
+generateCycleDates' cycle@Cycle{..} maturityDate currentDate includeLastDate cycleDates
   | currentDate >= maturityDate =
     if includeLastDate then
       if currentDate == maturityDate || stub == ShortStub then

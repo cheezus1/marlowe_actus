@@ -6,17 +6,8 @@ import Data.Maybe
 import qualified Data.Map.Strict as Map
 import qualified Data.List as List
 
+import Language.Marlowe.ACTUS.Definitions
 import Language.Marlowe.ACTUS.Util.Cycle
-import Language.Marlowe.ACTUS.Util.Conventions.EndOfMonthShift
-import Language.Marlowe.ACTUS.Util.Conventions.BusinessDayShift
-
-data Schedule = Schedule
-  { s :: Maybe Day -- kANX with kANX attribute cycle anchor date of event type k
-  , c :: Maybe Cycle -- kCL with kCL event type k’s schedule cycle
-  , t :: Maybe Day -- MD with MD the contract’s maturity
-  , b :: Bool -- indicating whether the schedule end date T belongs to the schedule or not
-  , dateToExclude :: Maybe Day -- additional field
-  } deriving (Show)
 
 scheduleEvents eventSchedules =
   scheduleEvents' eventSchedules Map.empty
