@@ -38,6 +38,7 @@ test-suite unit-tests
                Language.Marlowe.ACTUS.Util.Cycle
                Language.Marlowe.ACTUS.Util.Event
                Language.Marlowe.ACTUS.Util.Schedule
+               Language.Marlowe.ACTUS.Util.Conventions.DateShift
                Language.Marlowe.ACTUS.Util.Conventions.ContractDefault
                Language.Marlowe.ACTUS.Util.Conventions.ContractRoleSign
                Language.Marlowe.ACTUS.Util.Conventions.YearFraction
@@ -85,6 +86,7 @@ executable marlowe
                         Language.Marlowe.ACTUS.Util.Cycle
                         Language.Marlowe.ACTUS.Util.Event
                         Language.Marlowe.ACTUS.Util.Schedule
+                        Language.Marlowe.ACTUS.Util.Conventions.DateShift
                         Language.Marlowe.ACTUS.Util.Conventions.ContractDefault
                         Language.Marlowe.ACTUS.Util.Conventions.ContractRoleSign
                         Language.Marlowe.ACTUS.Util.Conventions.YearFraction

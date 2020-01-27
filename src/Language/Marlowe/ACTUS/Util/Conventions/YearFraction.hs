@@ -2,6 +2,7 @@ module Language.Marlowe.ACTUS.Util.Conventions.YearFraction where
 
 import Data.Time
 import GHC.Stack
+import Debug.Trace
 
 import Language.Marlowe.ACTUS.Definitions
 
@@ -65,7 +66,11 @@ yearFraction DCC_E30_360 startDay endDay _
       (360.0 * fromIntegral(d2Year - d1Year) +
        30.0 * fromIntegral(d2Month - d1Month) +
        fromIntegral(d2ChangedDay - d1ChangedDay)) / 360.0
-  | otherwise = error ("Year fraction error: second date must be more recent")
+  | otherwise =
+    (traceShow "YEAR FRACTION:")
+    (traceShow startDay)
+    (traceShow endDay)
+    error ("Year fraction error: second date must be more recent")
 
 isLastDayOfMonth :: Integer -> Int -> Int -> Bool
 isLastDayOfMonth year month day =

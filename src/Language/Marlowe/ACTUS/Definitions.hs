@@ -4,7 +4,7 @@ import Data.Maybe
 import Data.Time
 
 data EOMC = EOMC_EOM
-          | EOMC_SD deriving (Show)
+          | EOMC_SD deriving (Show, Eq)
 
 data BDC =  BDC_NULL
           | BDC_SCF
@@ -14,7 +14,7 @@ data BDC =  BDC_NULL
           | BDC_SCP
           | BDC_SCMP
           | BDC_CSP
-          | BDC_CSMP deriving (Show)
+          | BDC_CSMP deriving (Show, Eq)
 
 data DCC =  DCC_A_AISDA
           | DCC_A_360

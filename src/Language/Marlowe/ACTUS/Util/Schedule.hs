@@ -9,18 +9,18 @@ import qualified Data.List as List
 import Language.Marlowe.ACTUS.Definitions
 import Language.Marlowe.ACTUS.Util.Cycle
 
-scheduleEvents eventSchedules =
-  scheduleEvents' eventSchedules Map.empty
+scheduleEvents eventSchedules endOfMonthConvention =
+  scheduleEvents' eventSchedules endOfMonthConvention Map.empty
 
-scheduleEvents' [] scheduledEvents =
+scheduleEvents' [] _ scheduledEvents =
   scheduledEvents
 
-scheduleEvents' ((event, schedule@Schedule{..}) : rest) scheduledEvents =
-  let scheduleDates = generateScheduleDates schedule
+scheduleEvents' ((event, schedule@Schedule{..}) : rest) endOfMonthConvention scheduledEvents =
+  let scheduleDates = generateScheduleDates schedule endOfMonthConvention
       updatedScheduledEvents =
         mergeScheduleEvents event scheduleDates scheduledEvents
   in
-    scheduleEvents' rest updatedScheduledEvents
+    scheduleEvents' rest endOfMonthConvention updatedScheduledEvents
 
 generateScheduleDates
   schedule@Schedule{
@@ -29,7 +29,8 @@ generateScheduleDates
   , t = t
   , b = b
   , dateToExclude = dateToExclude
-  } =
+  }
+  endOfMonthConvention =
     let scheduleCycleDates =
           if (isNothing s) && (isNothing t) then
             []
@@ -40,7 +41,8 @@ generateScheduleDates
               if isNothing c then
                 [(fromJust s), (fromJust t)]
               else
-                generateCycleDates (fromJust c) (fromJust s) (fromJust t) b
+                generateCycleDates (fromJust c)
+                  (fromJust s) (fromJust t) b endOfMonthConvention
     in
       if isJust dateToExclude then
         List.delete (fromJust dateToExclude) scheduleCycleDates

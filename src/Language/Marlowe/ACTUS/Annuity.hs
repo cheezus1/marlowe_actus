@@ -12,6 +12,7 @@ import Language.Marlowe.ACTUS.Definitions
 import Language.Marlowe.ACTUS.Util.Annuity
 import Language.Marlowe.ACTUS.Util.Schedule
 import Language.Marlowe.ACTUS.Util.Event
+import Language.Marlowe.ACTUS.Util.Conventions.DateShift
 import Language.Marlowe.ACTUS.Util.Conventions.ContractRoleSign
 import Language.Marlowe.ACTUS.Util.Conventions.YearFraction
 
@@ -113,59 +114,56 @@ eventsToMarlowe [] _ [] _ _ =
 eventsToMarlowe (eventsForDate : rest) _ [] state config =
   generateMarlowe rest state config
 
-eventsToMarlowe scheduledEvents date (event : rest) state@ContractState{..} config =
-  let payoff = determinePayoff event date state config
-      updatedState@ContractState{
-        nt = nt
-      , ipnr = ipnr
-      , ipac = ipac
-      } = determineStateTransition event date state config
-  in
-    (traceShow event)
-    (traceShow date)
-    (traceShow ("event value", payoff))
-    (traceShow ("nominal value", nt))
-    (traceShow ("nominal rate", ipnr))
-    (traceShow ("nominal accrued", ipac))
-    (traceShow updatedState)
-    (traceShow "----------------------------")
-    (if event == IED then
-      When
-        [Case (Deposit (AccountId 0 loaner) loaner (Constant (round payoff)))
-          (Pay (AccountId 0 loaner) (Party loanee) (Constant (round payoff))
-            (eventsToMarlowe scheduledEvents date rest updatedState config)
-          )
-        ]
-      (Slot 1)
-      Close
-    else
-      When
-        [Case (Deposit (AccountId 0 loanee) loanee (Constant (round payoff)))
-          (Pay (AccountId 0 loanee) (Party loaner) (Constant (round payoff))
+eventsToMarlowe scheduledEvents date (event : rest) state@ContractState{..}
+  config@ContractConfig{businessDayConvention = businessDayConvention} =
+    let payoff = determinePayoff event date state config
+        updatedState@ContractState{
+          nt = nt
+        , ipnr = ipnr
+        , ipac = ipac
+        } = determineStateTransition event date state config
+        (payer, receiver) =
+          if payoff > 0.0 then (loaner, loanee)
+          else (loanee, loaner)
+    in
+      (traceShow event)
+      (traceShow date)
+      (traceShow ("event value", payoff))
+      (traceShow ("nominal value", nt))
+      (traceShow ("nominal rate", ipnr))
+      (traceShow ("nominal accrued", ipac))
+      (traceShow updatedState)
+      (traceShow "----------------------------")
+      (When
+        [Case (Deposit (AccountId 0 payer) payer (Constant (round payoff)))
+          (Pay (AccountId 0 payer) (Party receiver) (Constant (round payoff))
             (eventsToMarlowe scheduledEvents date rest updatedState config)
           )
         ]
       (Slot 1)
       Close)
 
-determinePayoff event eventDate state config =
-  case event of
-    AD   -> pof_ad_pam
-    IED  -> pof_ied_pam state config
-    PR   -> pof_pr_nam state config eventDate
-    MD   -> pof_md_pam state config
-    PP   -> pof_pp_pam state config
-    PY   -> pof_py_pam state config eventDate
-    FP   -> pof_fp_pam state config eventDate
-    PRD  -> pof_prd_lam state config eventDate
-    TD   -> pof_td_lam state config eventDate
-    IP   -> pof_ip_lam state config eventDate
-    IPCI -> pof_ipci_pam
-    IPCB -> pof_ipcb_lam
-    RR   -> pof_rr_pam
-    RRF  -> pof_rrf_pam
-    SC   -> pof_sc_pam
-    CE   -> pof_ce_pam
+determinePayoff event eventDate state config@ContractConfig{..} =
+  let maybeShiftedEventDate =
+        maybeApplyBDC eventDate businessDayConvention calendar
+  in
+    case event of
+      AD   -> pof_ad_pam
+      IED  -> pof_ied_pam state config
+      PR   -> pof_pr_nam state config maybeShiftedEventDate
+      MD   -> pof_md_pam state config
+      PP   -> pof_pp_pam state config
+      PY   -> pof_py_pam state config maybeShiftedEventDate
+      FP   -> pof_fp_pam state config maybeShiftedEventDate
+      PRD  -> pof_prd_lam state config maybeShiftedEventDate
+      TD   -> pof_td_lam state config maybeShiftedEventDate
+      IP   -> pof_ip_lam state config maybeShiftedEventDate
+      IPCI -> pof_ipci_pam
+      IPCB -> pof_ipcb_lam
+      RR   -> pof_rr_pam
+      RRF  -> pof_rrf_pam
+      SC   -> pof_sc_pam
+      CE   -> pof_ce_pam
 
 determineStateTransition event eventDate state config =
   case event of

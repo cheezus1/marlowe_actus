@@ -7,6 +7,7 @@ import qualified Data.List as List
 import Language.Marlowe.ACTUS.Definitions
 import Language.Marlowe.ACTUS.Util.Schedule
 import Language.Marlowe.ACTUS.Util.Cycle as Cycle
+import Language.Marlowe.ACTUS.Util.Conventions.DateShift
 import Language.Marlowe.ACTUS.Util.Conventions.YearFraction
 
 generateSchedules events config =
@@ -225,6 +226,7 @@ generateSchedules' (event : rest) contractConfig@ContractConfig{..} schedules =
                     , b = True
                     , dateToExclude = Nothing
                     }
+                    endOfMonthConvention
             in
               if (isNothing cycleAnchorDateOfRateReset) && (isNothing cycleOfRateReset) then
                 []
@@ -261,6 +263,7 @@ generateSchedules' (event : rest) contractConfig@ContractConfig{..} schedules =
                     , b = True
                     , dateToExclude = Nothing
                     }
+                    endOfMonthConvention
             in
               if (isNothing cycleAnchorDateOfRateReset) && (isNothing cycleOfRateReset) then
                 []
@@ -328,28 +331,39 @@ calculateTMDt0 config@ContractConfig{..} =
           incrementDate' tPrev prcl n
 
 -- TODO: maybe move to another module
-generateEventDates config event =
-  let schedules = generateSchedules [event] config
-  in
-    List.foldl
-      (\eventDates' (_, schedule) ->
-        let scheduleDates = generateScheduleDates schedule
-        in
-          List.foldl
-            (\eventDates'' date ->
-              List.insert date eventDates''
-            ) eventDates' scheduleDates
-      ) [] schedules
+generateEventDates
+  config@ContractConfig{
+    endOfMonthConvention = endOfMonthConvention
+  , businessDayConvention = businessDayConvention
+  , calendar = calendar
+  }
+  event =
+    let schedules = generateSchedules [event] config
+    in
+      List.foldl
+        (\eventDates' (_, schedule) ->
+          let scheduleDates = generateScheduleDates schedule endOfMonthConvention
+          in
+            List.foldl
+              (\eventDates'' date ->
+                List.insert (maybeApplyBDC date businessDayConvention calendar) eventDates''
+              ) eventDates' scheduleDates
+        ) [] schedules
 
 -- TODO: maybe move to another module
-eventScheduleCycleDatesBound config boundType event predicate =
-  let eventDates = generateEventDates config event
-  in
-    case boundType of
-      INF ->
-        fromJust (List.find predicate eventDates)
-      SUP ->
-        fromJust (List.find predicate (List.reverse eventDates))
+eventScheduleCycleDatesBound
+  config@ContractConfig{
+    businessDayConvention = businessDayConvention
+  , calendar = calendar
+  }
+  boundType event predicate =
+    let eventDates = generateEventDates config event
+    in
+      case boundType of
+        INF ->
+          fromJust (List.find predicate eventDates)
+        SUP ->
+          fromJust (List.find predicate (List.reverse eventDates))
 
 calculateAnnuity config s t n a r =
   let scheduleTimes = List.filter (> s) (generateEventDates config PR)

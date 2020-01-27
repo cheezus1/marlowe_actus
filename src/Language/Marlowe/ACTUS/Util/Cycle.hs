@@ -6,6 +6,7 @@ import Data.Time.Calendar
 import qualified Data.List as List
 
 import Language.Marlowe.ACTUS.Definitions
+import Language.Marlowe.ACTUS.Util.Conventions.DateShift
 
 mapPeriod :: Char -> Period
 mapPeriod periodChar = case periodChar of
@@ -28,23 +29,32 @@ createCycle [n, periodChar, stubChar] = Cycle
   , stub = mapStub stubChar
   }
 
-generateCycleDates cycle anchorDate maturityDate includeLastDate =
-  generateCycleDates' cycle maturityDate anchorDate includeLastDate []
+generateCycleDates cycle anchorDate maturityDate
+  includeLastDate endOfMonthConvention =
+    generateCycleDates' cycle anchorDate maturityDate
+      anchorDate includeLastDate endOfMonthConvention []
 
-generateCycleDates' cycle@Cycle{..} maturityDate currentDate includeLastDate cycleDates
-  | currentDate >= maturityDate =
-    if includeLastDate then
-      if currentDate == maturityDate || stub == ShortStub then
-        List.insert maturityDate cycleDates
+generateCycleDates' cycle@Cycle{..} anchorDate maturityDate
+  currentDate includeLastDate endOfMonthConvention cycleDates
+    | currentDate >= maturityDate =
+      if includeLastDate then
+        if currentDate == maturityDate || stub == ShortStub then
+          let eomcShiftedMD =
+                applyEOMC maturityDate anchorDate cycle endOfMonthConvention
+          in
+            List.insert eomcShiftedMD cycleDates
+        else
+          cycleDates
       else
         cycleDates
-    else
-      cycleDates
-  | otherwise =
-    let cycleDates' = (List.insert currentDate cycleDates)
-        nextDate = incrementDate currentDate cycle
-    in
-      generateCycleDates' cycle maturityDate nextDate includeLastDate cycleDates'
+    | otherwise =
+      let eomcShiftedCD =
+            applyEOMC currentDate anchorDate cycle endOfMonthConvention
+          cycleDates' = (List.insert eomcShiftedCD cycleDates)
+          nextDate = incrementDate currentDate cycle
+      in
+        generateCycleDates' cycle anchorDate maturityDate
+          nextDate includeLastDate endOfMonthConvention cycleDates'
 
 incrementDate date Cycle{..} =
   case p of
