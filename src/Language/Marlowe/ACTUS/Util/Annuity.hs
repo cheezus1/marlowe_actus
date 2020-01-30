@@ -2,369 +2,36 @@
 module Language.Marlowe.ACTUS.Util.Annuity where
 
 import Data.Maybe
+import Data.Time
 import qualified Data.List as List
 
 import Language.Marlowe.ACTUS.Definitions
+import Language.Marlowe.ACTUS.Util.NegativeAmortizer as NegativeAmortizer
 import Language.Marlowe.ACTUS.Util.Schedule
-import Language.Marlowe.ACTUS.Util.Cycle as Cycle
 import Language.Marlowe.ACTUS.Util.Conventions.DateShift
 import Language.Marlowe.ACTUS.Util.Conventions.YearFraction
 
+generateSchedules :: [Event] -> ContractConfig -> [(Event, Schedule)]
 generateSchedules events config =
   generateSchedules' events config []
 
+generateSchedules' ::
+  [Event] -> ContractConfig -> [(Event, Schedule)] -> [(Event, Schedule)]
 generateSchedules' [] _ schedules =
   schedules
 
 generateSchedules' (event : rest) contractConfig@ContractConfig{..} schedules =
   let additionalSchedules =
         case event of
-          AD ->
-            [] -- TODO: find out where custom input is provided
-          IED ->
-            [(IED, Schedule{
-              s = Just initialExchangeDate
-            , c = Nothing
-            , t = Nothing
-            , b = True
-            , dateToExclude = Nothing
-            })]
-          PR ->
-            let s =
-                  if isNothing cycleAnchorDateOfPrincipalRedemption &&
-                    isNothing cycleOfPrincipalRedemption then
-                      Nothing
-                  else
-                    if isNothing cycleAnchorDateOfPrincipalRedemption then
-                      Just (incrementDate initialExchangeDate
-                        (Cycle.createCycle (fromJust cycleOfPrincipalRedemption)))
-                    else
-                      cycleAnchorDateOfPrincipalRedemption
-            in
-              [(PR, Schedule{
-                s = s
-              , c = Just (Cycle.createCycle (fromJust cycleOfPrincipalRedemption))
-              , t = maturityDate
-              , b = False
-              , dateToExclude = Nothing
-              })]
           MD ->
-            [(MD, Schedule{
-              s = Just (calculateTMDt0 contractConfig)
-            , c = Nothing
-            , t = Nothing
-            , b = True
-            , dateToExclude = Nothing
-            })]
-          PP ->
-            let s =
-                  if isNothing cycleAnchorDateOfOptionality &&
-                    isNothing cycleOfOptionality then
-                      Nothing
-                  else
-                    if isNothing cycleAnchorDateOfOptionality then
-                      Just (incrementDate initialExchangeDate
-                        (Cycle.createCycle (fromJust cycleOfOptionality)))
-                    else
-                      cycleAnchorDateOfOptionality
-                scheduleU =
-                  [(PP, Schedule{
-                    s = s
-                  , c = Just (Cycle.createCycle (fromJust cycleOfOptionality))
-                  , t = maturityDate
-                  , b = True
-                  , dateToExclude = Nothing
-                  })]
-                scheduleV = [] -- TODO: risk factor
-            in
-              if prepaymentEffect == PE_N then
-                []
-              else
-                scheduleU ++ scheduleV
-          PY ->
-            if penaltyType == PT_O then
-              []
-            else
-              generateSchedules [PP] contractConfig
-          FP ->
-            let s =
-                  if isNothing cycleAnchorDateOfFee && isNothing cycleOfFee then
-                    Nothing
-                  else
-                    if isNothing cycleAnchorDateOfFee then
-                      Just (incrementDate initialExchangeDate
-                        (Cycle.createCycle (fromJust cycleOfFee)))
-                    else
-                      cycleAnchorDateOfFee
-            in
-              if isNothing feeRate || (fromJust feeRate) == 0.0 then
-                []
-              else
-                [(FP, Schedule{
-                  s = s
-                , c = Just (Cycle.createCycle (fromJust cycleOfFee))
-                , t = maturityDate
-                , b = True
-                , dateToExclude = Nothing
-                })]
-          PRD ->
-            [(PRD, Schedule{
-              s = purchaseDate
-            , c = Nothing
-            , t = Nothing
-            , b = True
-            , dateToExclude = Nothing
-            })]
-          TD ->
-            [(TD, Schedule{
-              s = terminationDate
-            , c = Nothing
-            , t = Nothing
-            , b = True
-            , dateToExclude = Nothing
-            })]
-          IP ->
-            let r =
-                  if isJust capitalizationEndDate then capitalizationEndDate
-                  else
-                    if isJust cycleAnchorDateOfInterestPayment then
-                      cycleAnchorDateOfInterestPayment
-                    else
-                      if isJust cycleOfInterestPayment then
-                        Just (incrementDate initialExchangeDate
-                          (Cycle.createCycle (fromJust cycleOfInterestPayment)))
-                      else
-                        Nothing
-                s =
-                  if isNothing cycleAnchorDateOfPrincipalRedemption then
-                    Just (incrementDate initialExchangeDate
-                      (Cycle.createCycle (fromJust cycleOfPrincipalRedemption)))
-                  else
-                    cycleAnchorDateOfPrincipalRedemption
-                t = Just (decrementDate (fromJust s) (Cycle.createCycle (fromJust cycleOfPrincipalRedemption)))
-                scheduleU =
-                  if (isNothing cycleAnchorDateOfInterestPayment) && (isNothing cycleOfInterestPayment) then
-                    []
-                  else
-                    if (isJust capitalizationEndDate) && (fromJust capitalizationEndDate) >= (fromJust t) then
-                      []
-                    else
-                      [(IP, Schedule{
-                        s = r
-                      , c = Just (Cycle.createCycle (fromJust cycleOfInterestPayment))
-                      , t = t
-                      , b = True
-                      , dateToExclude = Nothing
-                      })]
-                scheduleV =
-                  [(IP, Schedule{
-                    s = s
-                  , c = Just (Cycle.createCycle (fromJust cycleOfPrincipalRedemption))
-                  , t = maturityDate
-                  , b = True
-                  , dateToExclude = Nothing
-                  })]
-            in
-              scheduleU ++ scheduleV
-          IPCI ->
-            let s =
-                  if isNothing cycleAnchorDateOfInterestPayment &&
-                    isNothing cycleOfInterestPayment then
-                      Nothing
-                  else
-                    if isNothing cycleAnchorDateOfInterestPayment then
-                      Just (incrementDate initialExchangeDate
-                        (Cycle.createCycle (fromJust cycleOfInterestPayment)))
-                    else
-                      cycleAnchorDateOfInterestPayment
-            in
-              if isNothing capitalizationEndDate then
-                []
-              else
-                [(IPCI, Schedule{
-                  s = s
-                , c = Just (Cycle.createCycle (fromJust cycleOfInterestPayment))
-                , t = capitalizationEndDate
-                , b = True
-                , dateToExclude = Nothing
-                })]
-          IPCB ->
-            let s =
-                  if isNothing cycleAnchorDateOfInterestCalculationBase &&
-                    isNothing cycleOfInterestCalculationBase then
-                      Nothing
-                  else
-                    if isNothing cycleAnchorDateOfInterestCalculationBase then
-                      Just (incrementDate initialExchangeDate
-                        (Cycle.createCycle (fromJust cycleOfInterestCalculationBase)))
-                    else
-                      cycleAnchorDateOfInterestCalculationBase
-            in
-              if interestCalculationBase /= ICB_NTL then
-                []
-              else
-                [(IPCB, Schedule{
-                  s = s
-                , c = Just (Cycle.createCycle (fromJust cycleOfInterestCalculationBase))
-                , t = maturityDate
-                , b = True
-                , dateToExclude = Nothing
-                })]
-          RR ->
-            let s =
-                  if isNothing cycleAnchorDateOfRateReset then
-                    Just (incrementDate initialExchangeDate
-                      (Cycle.createCycle (fromJust cycleOfRateReset)))
-                  else
-                    cycleAnchorDateOfRateReset
-                rateResetCycleDates =
-                  generateScheduleDates
-                    Schedule{
-                      s = s
-                    , c = Just (Cycle.createCycle (fromJust cycleOfRateReset))
-                    , t = maturityDate
-                    , b = True
-                    , dateToExclude = Nothing
-                    }
-                    endOfMonthConvention
-            in
-              if (isNothing cycleAnchorDateOfRateReset) && (isNothing cycleOfRateReset) then
-                []
-              else
-                if isJust nextResetRate then
-                  [(RR, Schedule{
-                    s = s
-                  , c = Just (Cycle.createCycle (fromJust cycleOfRateReset))
-                  , t = maturityDate
-                  , b = True
-                  , dateToExclude = List.find (> (fromJust statusDate)) rateResetCycleDates
-                  })]
-                else
-                  [(RR, Schedule{
-                    s = s
-                  , c = Just (Cycle.createCycle (fromJust cycleOfRateReset))
-                  , t = maturityDate
-                  , b = True
-                  , dateToExclude = Nothing
-                  })]
-          RRF ->
-            let s =
-                  if isNothing cycleAnchorDateOfRateReset then
-                    Just (incrementDate initialExchangeDate
-                      (Cycle.createCycle (fromJust cycleOfRateReset)))
-                  else
-                    cycleAnchorDateOfRateReset
-                rateResetCycleDates =
-                  generateScheduleDates
-                    Schedule{
-                      s = s
-                    , c = Just (Cycle.createCycle (fromJust cycleOfRateReset))
-                    , t = maturityDate
-                    , b = True
-                    , dateToExclude = Nothing
-                    }
-                    endOfMonthConvention
-            in
-              if (isNothing cycleAnchorDateOfRateReset) && (isNothing cycleOfRateReset) then
-                []
-              else
-                [(RRF, Schedule{
-                  s = List.find (> (fromJust statusDate)) rateResetCycleDates
-                , c = Nothing
-                , t = Nothing
-                , b = True
-                , dateToExclude = Nothing
-                })]
-          SC ->
-            let s =
-                  if isNothing cycleAnchorDateOfScalingIndex &&
-                    isNothing cycleOfScalingIndex then
-                      Nothing
-                  else
-                    if isNothing cycleAnchorDateOfScalingIndex then
-                      Just (incrementDate initialExchangeDate
-                        (Cycle.createCycle (fromJust cycleOfScalingIndex)))
-                    else
-                      cycleAnchorDateOfScalingIndex
-            in
-              if scalingEffect == SE_000 then
-                []
-              else
-                [(SC, Schedule{
-                  s = s
-                , c = Just (Cycle.createCycle (fromJust cycleOfScalingIndex))
-                , t = maturityDate
-                , b = True
-                , dateToExclude = Nothing
-                })]
-          CE ->
-             -- TODO
-             []
+            getSchedule' contractConfig event (NegativeAmortizer.calculateTMDt0 contractConfig)
+          _ ->
+            getSchedule contractConfig event
   in
     generateSchedules' rest contractConfig (schedules ++ additionalSchedules)
 
-calculateTMDt0 config@ContractConfig{..} =
-  let t0 = initialExchangeDate
-  in
-    case maturityDate of
-      Just md ->
-        md
-      Nothing ->
-        let prcl = createCycle (fromJust cycleOfPrincipalRedemption)
-            tPrev =
-              if isJust cycleAnchorDateOfPrincipalRedemption &&
-                (fromJust cycleAnchorDateOfPrincipalRedemption) >= t0 then
-                  fromJust cycleAnchorDateOfPrincipalRedemption
-              else
-                if incrementDate initialExchangeDate prcl >= t0 then
-                   incrementDate initialExchangeDate prcl
-                else
-                  eventScheduleCycleDatesBound config SUP PR (< t0)
-            n = ceiling (notionalPrincipal /
-                  ((fromJust nextPrincipalRedemptionPayment) - notionalPrincipal *
-                    (yearFraction dayCountConvention tPrev
-                      (incrementDate tPrev prcl) (fromJust maturityDate)
-                    ) * nominalInterestRate
-                  )
-                )
-        in
-          incrementDate' tPrev prcl n
-
--- TODO: maybe move to another module
-generateEventDates
-  config@ContractConfig{
-    endOfMonthConvention = endOfMonthConvention
-  , businessDayConvention = businessDayConvention
-  , calendar = calendar
-  }
-  event =
-    let schedules = generateSchedules [event] config
-    in
-      List.foldl
-        (\eventDates' (_, schedule) ->
-          let scheduleDates = generateScheduleDates schedule endOfMonthConvention
-          in
-            List.foldl
-              (\eventDates'' date ->
-                List.insert (maybeApplyBDC date businessDayConvention calendar) eventDates''
-              ) eventDates' scheduleDates
-        ) [] schedules
-
--- TODO: maybe move to another module
-eventScheduleCycleDatesBound
-  config@ContractConfig{
-    businessDayConvention = businessDayConvention
-  , calendar = calendar
-  }
-  boundType event predicate =
-    let eventDates = generateEventDates config event
-    in
-      case boundType of
-        INF ->
-          fromJust (List.find predicate eventDates)
-        SUP ->
-          fromJust (List.find predicate (List.reverse eventDates))
-
+calculateAnnuity ::
+  ContractConfig -> Day -> Day -> Double -> Double -> Double -> Double
 calculateAnnuity config s t n a r =
   let scheduleTimes = List.filter (> s) (generateEventDates config PR)
       m = (List.length scheduleTimes) - 1
@@ -375,6 +42,8 @@ calculateAnnuity config s t n a r =
       (1 + (calculateAnnuitySumFragment config 0 m r scheduleTimes))
     )
 
+calculateAnnuityProductFragment ::
+  ContractConfig -> Int -> Int -> Double -> [Day] -> Double
 calculateAnnuityProductFragment config@ContractConfig{..} i m r scheduleTimes
   | i == m =
     1
@@ -385,6 +54,8 @@ calculateAnnuityProductFragment config@ContractConfig{..} i m r scheduleTimes
     in
       (1 + r * yearFraction') * (calculateAnnuityProductFragment config (i + 1) m r scheduleTimes)
 
+calculateAnnuitySumFragment ::
+  ContractConfig -> Int -> Int -> Double -> [Day] -> Double
 calculateAnnuitySumFragment config i m r scheduleTimes
   | i == m =
     0

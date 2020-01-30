@@ -10,6 +10,7 @@ import Debug.Trace
 
 import Language.Marlowe.ACTUS.Definitions
 import Language.Marlowe.ACTUS.Util.Annuity
+import Language.Marlowe.ACTUS.Util.NegativeAmortizer as NegativeAmortizer
 import Language.Marlowe.ACTUS.Util.Schedule
 import Language.Marlowe.ACTUS.Util.Event
 import Language.Marlowe.ACTUS.Util.Conventions.DateShift
@@ -22,12 +23,14 @@ loanee = "alice"
 loaner :: PubKey
 loaner = "bob"
 
+events :: [Event]
 events =
   [AD, IED, PR, MD, PP, PY, FP, PRD, TD, IP, IPCI, IPCB, RR, RRF, SC, CE]
 
+stateInit :: ContractConfig -> ContractState
 stateInit config@ContractConfig{..} =
   let t0 = initialExchangeDate
-      tmd = calculateTMDt0 config
+      tmd = NegativeAmortizer.calculateTMDt0 config
       nt =
         if initialExchangeDate > t0 then 0.0
         else (contractRoleSign (fromJust contractRole)) * notionalPrincipal
@@ -102,12 +105,15 @@ stateInit config@ContractConfig{..} =
                    , ipcb  = ipcb
                    }
 
+generateMarlowe :: [(Day, [Event])] -> ContractState -> ContractConfig -> Contract
 generateMarlowe [] _ _ =
   Close
 
 generateMarlowe scheduledEvents@((date, events) : _) state config =
   eventsToMarlowe scheduledEvents date events state config
 
+eventsToMarlowe ::
+  [(Day, [Event])] -> Day -> [Event] -> ContractState -> ContractConfig -> Contract
 eventsToMarlowe [] _ [] _ _ =
   Close
 
@@ -115,13 +121,15 @@ eventsToMarlowe (eventsForDate : rest) _ [] state config =
   generateMarlowe rest state config
 
 eventsToMarlowe scheduledEvents date (event : rest) state@ContractState{..}
-  config@ContractConfig{businessDayConvention = businessDayConvention} =
-    let payoff = determinePayoff event date state config
+  config@ContractConfig{calendar = calendar, businessDayConvention = businessDayConvention} =
+    let maybeShiftedEventDate =
+          maybeApplyBDC date businessDayConvention calendar
+        payoff = determinePayoff state config maybeShiftedEventDate event
         updatedState@ContractState{
           nt = nt
         , ipnr = ipnr
         , ipac = ipac
-        } = determineStateTransition event date state config
+        } = applyStateTransition state config date event
         (payer, receiver) =
           if payoff > 0.0 then (loaner, loanee)
           else (loanee, loaner)
@@ -142,44 +150,3 @@ eventsToMarlowe scheduledEvents date (event : rest) state@ContractState{..}
         ]
       (Slot 1)
       Close)
-
-determinePayoff event eventDate state config@ContractConfig{..} =
-  let maybeShiftedEventDate =
-        maybeApplyBDC eventDate businessDayConvention calendar
-  in
-    case event of
-      AD   -> pof_ad_pam
-      IED  -> pof_ied_pam state config
-      PR   -> pof_pr_nam state config maybeShiftedEventDate
-      MD   -> pof_md_pam state config
-      PP   -> pof_pp_pam state config
-      PY   -> pof_py_pam state config maybeShiftedEventDate
-      FP   -> pof_fp_pam state config maybeShiftedEventDate
-      PRD  -> pof_prd_lam state config maybeShiftedEventDate
-      TD   -> pof_td_lam state config maybeShiftedEventDate
-      IP   -> pof_ip_lam state config maybeShiftedEventDate
-      IPCI -> pof_ipci_pam
-      IPCB -> pof_ipcb_lam
-      RR   -> pof_rr_pam
-      RRF  -> pof_rrf_pam
-      SC   -> pof_sc_pam
-      CE   -> pof_ce_pam
-
-determineStateTransition event eventDate state config =
-  case event of
-    AD   -> stf_ad_pam state config eventDate
-    IED  -> stf_ied_lam state config eventDate
-    PR   -> stf_pr_nam state config eventDate
-    MD   -> stf_md_lam state config eventDate
-    PP   -> stf_pp_lam state config eventDate
-    PY   -> stf_py_lam state config eventDate
-    FP   -> stf_fp_lam state config eventDate
-    PRD  -> stf_prd_lam state config eventDate
-    TD   -> stf_td_pam state config eventDate
-    IP   -> stf_ip_pam state config eventDate
-    IPCI -> stf_ipci_lam state config eventDate
-    IPCB -> stf_ipcb_lam state config eventDate
-    RR   -> stf_rr_ann state config eventDate
-    RRF  -> stf_rrf_ann state config eventDate
-    SC   -> stf_sc_lam state config eventDate
-    CE   -> stf_ad_pam state config eventDate

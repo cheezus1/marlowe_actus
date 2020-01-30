@@ -3,6 +3,26 @@ module Language.Marlowe.ACTUS.Definitions where
 import Data.Maybe
 import Data.Time
 
+data ContractType = PAM -- Principal At Maturity
+                  | LAM -- Linear Amortizer
+                  | LAX -- Exotic Linear Amortizer
+                  | NAM -- Negative Amortizer
+                  | ANN -- Annuity
+                  | CLM -- Call Money
+                  | UMP -- Undefined Maturity Profile
+                  | CSH -- Cash
+                  | STK -- Stock
+                  | COM -- Commodity
+                  | FXOUT -- Foreign Exchange Outright
+                  | SWPPV -- Plain Vanilla Interest Rate Swap
+                  | SWAPS -- Swap
+                  | CAPFL -- Cap-Floor
+                  | OPTNS -- Option
+                  | FUTUR -- Future
+                  | CEG -- Credit Enhancement Guarantee
+                  | CEC -- Credit Enhancement Collateral
+                  deriving (Show, Eq)
+
 data EOMC = EOMC_EOM
           | EOMC_SD deriving (Show, Eq)
 
@@ -131,7 +151,8 @@ data ContractState = ContractState
 data ContractConfig = ContractConfig
   {
   -- General
-    nominalInterestRate :: Double -- IPNR
+    contractType :: ContractType -- CT
+  , nominalInterestRate :: Double -- IPNR
   , dayCountConvention :: DCC -- IPDC
   , initialExchangeDate :: Day -- IED
   , notionalPrincipal :: Double -- NT

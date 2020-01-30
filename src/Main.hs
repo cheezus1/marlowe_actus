@@ -18,7 +18,8 @@ main =
   let config@ContractConfig{..} =
         ContractConfig{
         -- General
-          nominalInterestRate = 0.05
+          contractType = ANN
+        , nominalInterestRate = 0.05
         , dayCountConvention = DCC_E30_360
         , initialExchangeDate = fromGregorian 2015 1 2
         , notionalPrincipal = 1000
@@ -40,8 +41,8 @@ main =
         , feeAccrued = Just 0.0
 
         -- Interest
-        , cycleAnchorDateOfInterestPayment = Just (fromGregorian 2016 1 2)
-        , cycleOfInterestPayment = Just "1Y+"
+        , cycleAnchorDateOfInterestPayment = Nothing
+        , cycleOfInterestPayment = Nothing
         , accruedInterest = Just 0
         , capitalizationEndDate = Nothing
         , cycleAnchorDateOfInterestCalculationBase = Nothing
@@ -50,20 +51,20 @@ main =
         , interestCalculationBaseAmount = Just 1
 
         -- Notional Principal
-        , maturityDate = Just (fromGregorian 2025 1 2)
+        , maturityDate = Just (fromGregorian 2020 1 2)
         , contractDealDate = Just (fromGregorian 2015 1 1)
         , premiumDiscountAtIED = 0 -- 0
-        , cycleAnchorDateOfPrincipalRedemption = Just (fromGregorian 2017 1 2)
+        , cycleAnchorDateOfPrincipalRedemption = Just (fromGregorian 2016 1 2)
         , cycleOfPrincipalRedemption = Just "1Y+"
-        , nextPrincipalRedemptionPayment = Just 0.0
+        , nextPrincipalRedemptionPayment = Nothing
         , purchaseDate = Nothing
-        , priceAtPurchaseDate = Just 0.0
+        , priceAtPurchaseDate = Nothing
         , terminationDate = Nothing
-        , priceAtTerminationDate = Just 0.0
-        , marketObjectCodeOfScalingIndex = Just ""
-        , scalingIndexAtStatusDate = Just 0.0
+        , priceAtTerminationDate = Nothing
+        , marketObjectCodeOfScalingIndex = Nothing
+        , scalingIndexAtStatusDate = Just (-999999999.0)
         , cycleAnchorDateOfScalingIndex = Nothing
-        , cycleOfScalingIndex = Just "1Y+"
+        , cycleOfScalingIndex = Nothing
         , scalingEffect = SE_000 -- SE_000
 
         -- Optionality
@@ -74,14 +75,14 @@ main =
         , prepaymentEffect = PE_N -- PE_N
 
         -- Rate Reset
-        , cycleAnchorDateOfRateReset = Just (fromGregorian 2016 1 1)
-        , cycleOfRateReset = Just "2Y+"
-        , rateSpread = 0.05 -- 0.0
-        , periodFloor = Just 0.0
-        , periodCap = Just 0.0
-        , lifeFloor = Just 0.0
-        , lifeCap = Just 0.0
-        , nextResetRate = Just 0.0
+        , cycleAnchorDateOfRateReset = Nothing
+        , cycleOfRateReset = Nothing
+        , rateSpread = 0.0 -- 0.0
+        , periodFloor = Nothing
+        , periodCap = Nothing
+        , lifeFloor = Nothing
+        , lifeCap = Nothing
+        , nextResetRate = Nothing
         , rateMultiplier = 1.0 -- 1.0
         }
   -- let config@ContractConfig{..} =

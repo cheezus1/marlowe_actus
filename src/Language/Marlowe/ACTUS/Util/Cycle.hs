@@ -29,11 +29,13 @@ createCycle [n, periodChar, stubChar] = Cycle
   , stub = mapStub stubChar
   }
 
+generateCycleDates :: Cycle -> Day -> Day -> Bool -> EOMC -> [Day]
 generateCycleDates cycle anchorDate maturityDate
   includeLastDate endOfMonthConvention =
     generateCycleDates' cycle anchorDate maturityDate
       anchorDate includeLastDate endOfMonthConvention []
 
+generateCycleDates' :: Cycle -> Day -> Day -> Day -> Bool -> EOMC -> [Day] -> [Day]
 generateCycleDates' cycle@Cycle{..} anchorDate maturityDate
   currentDate includeLastDate endOfMonthConvention cycleDates
     | currentDate >= maturityDate =
@@ -56,6 +58,7 @@ generateCycleDates' cycle@Cycle{..} anchorDate maturityDate
         generateCycleDates' cycle anchorDate maturityDate
           nextDate includeLastDate endOfMonthConvention cycleDates'
 
+incrementDate :: Day -> Cycle -> Day
 incrementDate date Cycle{..} =
   case p of
     P_D -> addDays n date
@@ -65,6 +68,7 @@ incrementDate date Cycle{..} =
     P_H -> addGregorianMonthsClip (n * 6) date
     P_Y -> addGregorianYearsClip n date
 
+decrementDate :: Day -> Cycle -> Day
 decrementDate date Cycle{..} =
   case p of
     P_D -> addDays (-n) date
@@ -74,6 +78,7 @@ decrementDate date Cycle{..} =
     P_H -> addGregorianMonthsClip (-(n * 6)) date
     P_Y -> addGregorianYearsClip (-n) date
 
+incrementDate' :: Day -> Cycle -> Int -> Day
 incrementDate' date _ 0 =
   date
 
