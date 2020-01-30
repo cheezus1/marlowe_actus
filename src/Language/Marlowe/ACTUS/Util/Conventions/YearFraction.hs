@@ -6,7 +6,7 @@ import Debug.Trace
 
 import Language.Marlowe.ACTUS.Definitions
 
-yearFraction :: HasCallStack => DCC -> Day -> Day -> Day -> Double
+yearFraction :: DCC -> Day -> Day -> Day -> Double
 yearFraction DCC_A_AISDA startDay endDay _
   | startDay <= endDay =
     let (d1Year, _, _) = toGregorian startDay

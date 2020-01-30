@@ -57,11 +57,7 @@ isLastDayOfMonthWithLessThan31Days :: Day -> Bool
 isLastDayOfMonthWithLessThan31Days date =
   let (day, month, year) = toGregorian date
   in
-    if day < 31 &&
-      (gregorianMonthLength (toInteger year) month) == (fromInteger day) then
-        True
-    else
-      False
+    day < 31 && (gregorianMonthLength (toInteger year) month) == (fromInteger day) 
 
 moveToEndOfMonth :: Day -> Day
 moveToEndOfMonth date =
