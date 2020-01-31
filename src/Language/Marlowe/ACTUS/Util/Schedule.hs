@@ -367,6 +367,33 @@ getSchedule contractConfig@ContractConfig{..} IPCB
         })]
 
 getSchedule contractConfig@ContractConfig{..} IP
+  | List.elem contractType [PAM] =
+    let s =
+          if isNothing cycleAnchorDateOfInterestPayment &&
+            isNothing cycleOfInterestPayment then
+              Nothing
+          else
+            if isJust capitalizationEndDate then
+              capitalizationEndDate
+            else
+              if isNothing cycleAnchorDateOfInterestPayment then
+                Just (incrementDate initialExchangeDate
+                  (createCycle (fromJust cycleOfInterestPayment)))
+              else
+                cycleAnchorDateOfInterestPayment
+    in
+      if nominalInterestRate == 0.0 then
+        []
+      else
+        [(IP, Schedule{
+          s = s
+        , c = Just (createCycle (fromJust cycleOfInterestPayment))
+        , t = maturityDate
+        , b = True
+        , dateToExclude = Nothing
+        })]
+
+getSchedule contractConfig@ContractConfig{..} IP
   | List.elem contractType [NAM, ANN] =
     let r =
           if isJust capitalizationEndDate then capitalizationEndDate
