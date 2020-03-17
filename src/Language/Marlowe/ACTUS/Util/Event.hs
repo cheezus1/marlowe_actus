@@ -27,11 +27,11 @@ determinePayoff ContractState{..} ContractConfig{..} eventDate MD
     1.0 * (nsc - nt + isc * ipac + fac) -- TODO: risk factor
 
 determinePayoff ContractState{..} ContractConfig{..} eventDate IPCI
-  | List.elem contractType [PAM, ANN] =
+  | List.elem contractType [PAM, ANN, LAM] =
     0.0
 
 determinePayoff ContractState{..} ContractConfig{..} eventDate FP
-  | List.elem contractType [PAM, ANN] =
+  | List.elem contractType [PAM, ANN, LAM] =
     let c = 1.0 * (fromJust feeRate) -- TODO: risk factor
     in
       case feeBasis of
@@ -56,15 +56,15 @@ determinePayoff ContractState{..} ContractConfig{..} eventDate PP
     1.0 * 1.0 -- TODO: risk factor x2
 
 determinePayoff ContractState{..} ContractConfig{..} eventDate RRF
-  | List.elem contractType [PAM, ANN] =
+  | List.elem contractType [PAM, ANN, LAM] =
     0.0
 
 determinePayoff ContractState{..} ContractConfig{..} eventDate RR
-  | List.elem contractType [PAM, ANN] =
+  | List.elem contractType [PAM, ANN, LAM] =
     0.0
 
 determinePayoff ContractState{..} ContractConfig{..} eventDate SC
-  | List.elem contractType [PAM, ANN] =
+  | List.elem contractType [PAM, ANN, LAM] =
     0.0
 
 determinePayoff ContractState{..} ContractConfig{..} eventDate AD
@@ -72,7 +72,7 @@ determinePayoff ContractState{..} ContractConfig{..} eventDate AD
     0.0
 
 determinePayoff ContractState{..} ContractConfig{..} eventDate CE
-  | List.elem contractType [PAM, ANN] =
+  | List.elem contractType [PAM, ANN, LAM] =
     0.0
 
 determinePayoff ContractState{..} ContractConfig{..} eventDate IP
@@ -118,7 +118,7 @@ determinePayoff ContractState{..} ContractConfig{..} eventDate PR
 
 applyStateTransition :: ContractState -> ContractConfig -> Day -> Event -> ContractState
 applyStateTransition state@ContractState{..} config@ContractConfig{..} eventDate IP
-  | List.elem contractType [PAM, ANN] =
+  | List.elem contractType [PAM, ANN, LAM] =
     let maybeShiftedEventDate = maybeApplyBDC eventDate businessDayConvention calendar
         updated_ipac = 0.0
         updated_fac =
@@ -142,7 +142,7 @@ applyStateTransition state@ContractState{..} config@ContractConfig{..} eventDate
             }
 
 applyStateTransition state@ContractState{..} ContractConfig{..} eventDate TD
-  | List.elem contractType [PAM, ANN] =
+  | List.elem contractType [PAM, ANN, LAM] =
     state { nt   = 0.0
           , ipac = 0.0
           , fac  = 0.0
@@ -576,6 +576,31 @@ applyStateTransition state@ContractState{..} config@ContractConfig{..} eventDate
             }
 
 applyStateTransition state@ContractState{..} config@ContractConfig{..} eventDate RRF
+| contractType == LAM =
+  let maybeShiftedEventDate = maybeApplyBDC eventDate businessDayConvention calendar
+      yearFraction' = yearFraction dayCountConvention sd maybeShiftedEventDate (fromJust maturityDate)
+      updated_ipac = ipac + yearFraction' * ipnr * ipcb
+      updated_fac =
+        case feeBasis of
+          Just FB_N -> fac + yearFraction' * nt * (fromJust feeRate)
+          _ ->
+            let tFPPrev = eventScheduleCycleDatesBound config SUP FP (< t0)
+                tFPNext = eventScheduleCycleDatesBound config INF FP (> t0)
+            in
+              ((yearFraction dayCountConvention tFPPrev maybeShiftedEventDate (fromJust maturityDate)) /
+                (yearFraction dayCountConvention tFPPrev tFPNext (fromJust maturityDate))) *
+              (contractRoleSign (fromJust contractRole)) * (fromJust feeRate)
+      updated_ipnr = (fromJust nextResetRate)
+      -- TODO:
+      -- check (tmd must be updated_tmd??) - Tmdt+ is not stated in the document
+      -- check (nt must be updated_nt) - Nt+ is not stated in the document
+      updated_sd = applyBDC eventDate businessDayConvention calendar
+  in
+    state { ipac  = updated_ipac
+          , fac   = updated_fac
+          , ipnr  = updated_ipnr
+          , sd    = updated_sd
+          }
   | contractType == ANN =
     let maybeShiftedEventDate = maybeApplyBDC eventDate businessDayConvention calendar
         yearFraction' = yearFraction dayCountConvention sd maybeShiftedEventDate (fromJust maturityDate)
@@ -627,6 +652,43 @@ applyStateTransition state@ContractState{..} config@ContractConfig{..} eventDate
             }
 
 applyStateTransition state@ContractState{..} config@ContractConfig{..} eventDate RR
+  | contractType == LAM =
+    let maybeShiftedEventDate = maybeApplyBDC eventDate businessDayConvention calendar
+        yearFraction' = yearFraction dayCountConvention sd maybeShiftedEventDate (fromJust maturityDate)
+        updated_ipac = ipac + yearFraction' * ipnr * ipcb
+        updated_fac =
+          case feeBasis of
+            Just FB_N -> fac + yearFraction' * nt * (fromJust feeRate)
+            _ ->
+              let tFPPrev = eventScheduleCycleDatesBound config SUP FP (< t0)
+                  tFPNext = eventScheduleCycleDatesBound config INF FP (> t0)
+              in
+                ((yearFraction dayCountConvention tFPPrev maybeShiftedEventDate (fromJust maturityDate)) /
+                  (yearFraction dayCountConvention tFPPrev tFPNext (fromJust maturityDate))) *
+                (contractRoleSign (fromJust contractRole)) * (fromJust feeRate)
+        orf = 1 -- TODO: risk factor
+        deltaR =
+          min
+            (max
+              (orf * rateMultiplier + rateSpread - ipnr)
+              (fromJust periodFloor))
+            (fromJust periodCap)
+        updated_ipnr =
+          min
+            (max
+              (ipnr + deltaR)
+              (fromJust lifeFloor))
+            (fromJust lifeCap)
+        -- TODO:
+        -- check (tmd must be updated_tmd??) - Tmdt+ is not stated in the document
+        -- check (nt must be updated_nt) - Nt+ is not stated in the document
+        updated_sd = applyBDC eventDate businessDayConvention calendar
+    in
+      state { ipac  = updated_ipac
+            , fac   = updated_fac
+            , ipnr  = updated_ipnr
+            , sd    = updated_sd
+            }
   | contractType == ANN =
     let maybeShiftedEventDate = maybeApplyBDC eventDate businessDayConvention calendar
         yearFraction' = yearFraction dayCountConvention sd maybeShiftedEventDate (fromJust maturityDate)
@@ -702,5 +764,5 @@ applyStateTransition state@ContractState{..} config@ContractConfig{..} eventDate
             }
 
 applyStateTransition state@ContractState{..} config@ContractConfig{..} eventDate CE
-  | List.elem contractType [PAM, ANN] =
+  | List.elem contractType [PAM, ANN, LAM] =
     applyStateTransition state config eventDate AD
