@@ -29,17 +29,20 @@ test-suite unit-tests
                  text,
                  template-haskell,
                  time,
-                 wl-pprint -any
+                 wl-pprint -any,
+                 flow ==1.0.*
  other-modules:
                Language.Marlowe
                Language.Marlowe.ACTUS.Definitions
                Language.Marlowe.ACTUS.PrincipalAtMaturity
+               Language.Marlowe.ACTUS.LinearAmortizer
                Language.Marlowe.ACTUS.Annuity
                Language.Marlowe.ACTUS.Util.NegativeAmortizer
                Language.Marlowe.ACTUS.Util.Annuity
                Language.Marlowe.ACTUS.Util.Cycle
                Language.Marlowe.ACTUS.Util.Event
                Language.Marlowe.ACTUS.Util.Schedule
+               Language.Marlowe.ACTUS.Util.StateInit
                Language.Marlowe.ACTUS.Util.Conventions.DateShift
                Language.Marlowe.ACTUS.Util.Conventions.ContractDefault
                Language.Marlowe.ACTUS.Util.Conventions.ContractRoleSign
@@ -79,17 +82,20 @@ executable marlowe
                         text,
                         template-haskell,
                         time,
-                        wl-pprint -any
+                        wl-pprint -any,
+                        flow ==1.0.*
     other-modules:
                         Language.Marlowe
                         Language.Marlowe.ACTUS.Definitions
                         Language.Marlowe.ACTUS.PrincipalAtMaturity
+                        Language.Marlowe.ACTUS.LinearAmortizer
                         Language.Marlowe.ACTUS.Annuity
                         Language.Marlowe.ACTUS.Util.NegativeAmortizer
                         Language.Marlowe.ACTUS.Util.Annuity
                         Language.Marlowe.ACTUS.Util.Cycle
                         Language.Marlowe.ACTUS.Util.Event
                         Language.Marlowe.ACTUS.Util.Schedule
+                        Language.Marlowe.ACTUS.Util.StateInit
                         Language.Marlowe.ACTUS.Util.Conventions.DateShift
                         Language.Marlowe.ACTUS.Util.Conventions.ContractDefault
                         Language.Marlowe.ACTUS.Util.Conventions.ContractRoleSign

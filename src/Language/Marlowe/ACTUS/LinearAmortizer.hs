@@ -1,7 +1,6 @@
 {-# LANGUAGE RecordWildCards #-}
-module Language.Marlowe.ACTUS.PrincipalAtMaturity where
+module Language.Marlowe.ACTUS.LinearAmortizer where
 
-import Data.Maybe
 import Flow
 
 import Language.Marlowe.ACTUS.Definitions
@@ -9,7 +8,7 @@ import Language.Marlowe.ACTUS.Util.StateInit
 
 events :: [Event]
 events =
-  [AD, IED, MD, PP, PY, FP, PRD, TD, IP, IPCI, RR, RRF, SC, CE]
+  [AD, IED, PR, MD, PP, PY, FP, PRD, TD, IP, IPCI, IPCB, RR, RRF, SC, CE]
 
 stateInit :: ContractConfig -> ContractState
 stateInit config@ContractConfig{..} =
@@ -25,3 +24,5 @@ stateInit config@ContractConfig{..} =
       |> initVariable config S_ISC
       |> initVariable config S_PRF
       |> initVariable config S_SD
+      |> initVariable config S_PRNXT
+      |> initVariable config S_IPCB

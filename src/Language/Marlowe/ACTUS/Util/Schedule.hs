@@ -108,11 +108,11 @@ generateEventDates
 
 getSchedule :: ContractConfig -> Event -> [(Event, Schedule)]
 getSchedule contractConfig@ContractConfig{..} AD
-  | List.elem contractType [PAM, ANN] =
+  | List.elem contractType [PAM, LAM, ANN] =
     [] -- TODO: find out where custom input is provided
 
 getSchedule contractConfig@ContractConfig{..} IED
-  | List.elem contractType [PAM, ANN] =
+  | List.elem contractType [PAM, LAM, ANN] =
     [(IED, Schedule{
       s = Just initialExchangeDate
     , c = Nothing
@@ -122,7 +122,7 @@ getSchedule contractConfig@ContractConfig{..} IED
     })]
 
 getSchedule contractConfig@ContractConfig{..} PP
-  | List.elem contractType [PAM, ANN] =
+  | List.elem contractType [PAM, LAM, ANN] =
     let s =
           if isNothing cycleAnchorDateOfOptionality &&
             isNothing cycleOfOptionality then
@@ -150,14 +150,14 @@ getSchedule contractConfig@ContractConfig{..} PP
 
 
 getSchedule contractConfig@ContractConfig{..} PY
-  | List.elem contractType [PAM, ANN] =
+  | List.elem contractType [PAM, LAM, ANN] =
     if penaltyType == PT_O then
       []
     else
       getSchedule contractConfig PP
 
 getSchedule contractConfig@ContractConfig{..} FP
-  | List.elem contractType [PAM, ANN] =
+  | List.elem contractType [PAM, LAM, ANN] =
     let s =
           if isNothing cycleAnchorDateOfFee && isNothing cycleOfFee then
             Nothing
@@ -180,7 +180,7 @@ getSchedule contractConfig@ContractConfig{..} FP
         })]
 
 getSchedule contractConfig@ContractConfig{..} PRD
-  | List.elem contractType [PAM, ANN] =
+  | List.elem contractType [PAM, LAM, ANN] =
     [(PRD, Schedule{
       s = purchaseDate
     , c = Nothing
@@ -190,7 +190,7 @@ getSchedule contractConfig@ContractConfig{..} PRD
     })]
 
 getSchedule contractConfig@ContractConfig{..} TD
-  | List.elem contractType [PAM, ANN] =
+  | List.elem contractType [PAM, LAM, ANN] =
     [(TD, Schedule{
       s = terminationDate
     , c = Nothing
@@ -200,7 +200,7 @@ getSchedule contractConfig@ContractConfig{..} TD
     })]
 
 getSchedule contractConfig@ContractConfig{..} IPCI
-  | List.elem contractType [PAM, ANN] =
+  | List.elem contractType [PAM, LAM, ANN] =
     let s =
           if isNothing cycleAnchorDateOfInterestPayment &&
             isNothing cycleOfInterestPayment then
@@ -224,7 +224,7 @@ getSchedule contractConfig@ContractConfig{..} IPCI
         })]
 
 getSchedule contractConfig@ContractConfig{..} RR
-  | List.elem contractType [PAM, ANN] =
+  | List.elem contractType [PAM, LAM, ANN] =
     let s =
           if isNothing cycleAnchorDateOfRateReset then
             Just (incrementDate initialExchangeDate
@@ -263,7 +263,7 @@ getSchedule contractConfig@ContractConfig{..} RR
           })]
 
 getSchedule contractConfig@ContractConfig{..} RRF
-  | List.elem contractType [PAM, ANN] =
+  | List.elem contractType [PAM, LAM, ANN] =
     let s =
           if isNothing cycleAnchorDateOfRateReset then
             Just (incrementDate initialExchangeDate
@@ -293,7 +293,7 @@ getSchedule contractConfig@ContractConfig{..} RRF
         })]
 
 getSchedule contractConfig@ContractConfig{..} SC
-  | List.elem contractType [PAM, ANN] =
+  | List.elem contractType [PAM, LAM, ANN] =
     let s =
           if isNothing cycleAnchorDateOfScalingIndex &&
             isNothing cycleOfScalingIndex then
@@ -317,7 +317,7 @@ getSchedule contractConfig@ContractConfig{..} SC
         })]
 
 getSchedule contractConfig@ContractConfig{..} CE
-  | List.elem contractType [PAM, ANN] =
+  | List.elem contractType [PAM, LAM, ANN] =
     -- TODO
     []
 
@@ -367,7 +367,7 @@ getSchedule contractConfig@ContractConfig{..} IPCB
         })]
 
 getSchedule contractConfig@ContractConfig{..} IP
-  | List.elem contractType [PAM] =
+  | List.elem contractType [PAM, LAM] =
     let s =
           if isNothing cycleAnchorDateOfInterestPayment &&
             isNothing cycleOfInterestPayment then
@@ -444,7 +444,7 @@ getSchedule contractConfig@ContractConfig{..} IP
 
 getSchedule' :: ContractConfig -> Event -> Day -> [(Event, Schedule)]
 getSchedule' contractConfig@ContractConfig{..} MD tmdt0
-  | List.elem contractType [PAM, ANN] =
+  | List.elem contractType [PAM, LAM, ANN] =
     [(MD, Schedule{
       s = Just tmdt0
     , c = Nothing

@@ -23,6 +23,27 @@ data ContractType = PAM -- Principal At Maturity
                   | CEC -- Credit Enhancement Collateral
                   deriving (Show, Eq)
 
+ -- Comments are according:
+ -- https://github.com/actusfrf/actus-dictionary/blob/master/actus-dictionary-states.json
+data StateVariables = S_TMD -- missing in document
+                    | S_IPAC
+                    | S_IPAC2
+                    | S_PRF
+                    | S_XA
+                    | S_XD
+                    | S_FAC -- FEAC
+                    | S_IPCB -- ICB
+                    | S_ISC
+                    | S_PRNXT -- NPR
+                    | S_IPNR
+                    | S_IPNR2
+                    | S_NPD
+                    | S_NT
+                    | S_NT2
+                    | S_NSC
+                    | S_SD
+                    deriving (Show, Eq)
+
 data EOMC = EOMC_EOM
           | EOMC_SD deriving (Show, Eq)
 
@@ -49,7 +70,7 @@ data Event =  IED
             | FP
             | PR
             | PD
-            | PRF
+            | CPRF
             | PY
             | PP
             | IP

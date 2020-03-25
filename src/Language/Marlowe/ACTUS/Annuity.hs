@@ -7,15 +7,13 @@ import Data.Maybe
 import Data.Time
 import qualified Data.List as List
 import Debug.Trace
+import Flow
 
 import Language.Marlowe.ACTUS.Definitions
 import Language.Marlowe.ACTUS.Util.Annuity
-import Language.Marlowe.ACTUS.Util.NegativeAmortizer as NegativeAmortizer
-import Language.Marlowe.ACTUS.Util.Schedule
 import Language.Marlowe.ACTUS.Util.Event
 import Language.Marlowe.ACTUS.Util.Conventions.DateShift
-import Language.Marlowe.ACTUS.Util.Conventions.ContractRoleSign
-import Language.Marlowe.ACTUS.Util.Conventions.YearFraction
+import Language.Marlowe.ACTUS.Util.StateInit
 
 loanee :: PubKey
 loanee = "alice"
@@ -29,81 +27,20 @@ events =
 
 stateInit :: ContractConfig -> ContractState
 stateInit config@ContractConfig{..} =
-  let t0 = initialExchangeDate
-      tmd = NegativeAmortizer.calculateTMDt0 config
-      nt =
-        if initialExchangeDate > t0 then 0.0
-        else (contractRoleSign (fromJust contractRole)) * notionalPrincipal
-      ipnr =
-        if initialExchangeDate > t0 then 0.0
-        else nominalInterestRate
-      ipac =
-        if nominalInterestRate == 0.0 then 0.0
-        else
-          if isJust accruedInterest then fromJust accruedInterest
-          else
-            let tPrev = eventScheduleCycleDatesBound config SUP IP (< t0)
-                yearFrac =
-                  yearFraction dayCountConvention tPrev t0 (fromJust maturityDate)
-            in
-              yearFrac * nt * ipnr
-      fac =
-        if isNothing feeRate then 0.0
-        else
-          if isJust feeAccrued then fromJust feeAccrued
-          else
-            let tFPPrev = eventScheduleCycleDatesBound config SUP FP (< t0)
-                tFPNext = eventScheduleCycleDatesBound config INF FP (> t0)
-            in
-              case feeBasis of
-                Just FB_N ->
-                  (yearFraction dayCountConvention tFPPrev t0 (fromJust maturityDate)) * nt * (fromJust feeRate)
-                _ ->
-                  ((yearFraction dayCountConvention tFPPrev t0 (fromJust maturityDate)) /
-                      (yearFraction dayCountConvention tFPPrev tFPNext (fromJust maturityDate))) *
-                  (fromJust feeRate)
-      nsc =
-        if scalingEffect == SE_0N0 || scalingEffect == SE_0NM ||
-          scalingEffect == SE_IN0 || scalingEffect == SE_INM then
-            (fromJust scalingIndexAtStatusDate)
-        else
-          1.0
-      isc =
-        if scalingEffect == SE_I00 || scalingEffect == SE_IN0 ||
-          scalingEffect == SE_I0M || scalingEffect == SE_INM then
-            (fromJust scalingIndexAtStatusDate)
-        else
-          1.0
-      prf = CS_PF
-      sd = t0
-      prnxt =
-        case nextPrincipalRedemptionPayment of
-          Just prnxt ->
-            (contractRoleSign (fromJust contractRole)) * prnxt
-          Nothing ->
-            (notionalPrincipal + ipac) * 1 -- TODO: 1 = todo/todo ?
-      ipcb =
-        if t0 < initialExchangeDate then
-          0.0
-        else
-          if interestCalculationBase == ICB_NT then
-            (contractRoleSign (fromJust contractRole)) * notionalPrincipal
-          else
-            (contractRoleSign (fromJust contractRole)) * (fromJust interestCalculationBaseAmount)
-    in
-      ContractState{ t0    = t0
-                   , tmd   = tmd
-                   , nt    = nt
-                   , ipnr  = ipnr
-                   , ipac  = ipac
-                   , fac   = fac
-                   , nsc   = nsc
-                   , isc   = isc
-                   , prf   = prf
-                   , sd    = sd
-                   , prnxt = prnxt
-                   , ipcb  = ipcb
-                   }
+  let defaultState = getDefaultState
+  in
+    defaultState { t0 = initialExchangeDate }
+      |> initVariable config S_TMD
+      |> initVariable config S_NT
+      |> initVariable config S_IPNR
+      |> initVariable config S_IPAC
+      |> initVariable config S_FAC
+      |> initVariable config S_NSC
+      |> initVariable config S_ISC
+      |> initVariable config S_PRF
+      |> initVariable config S_SD
+      |> initVariable config S_PRNXT
+      |> initVariable config S_IPCB
 
 generateMarlowe :: [(Day, [Event])] -> ContractState -> ContractConfig -> Contract
 generateMarlowe [] _ _ =
