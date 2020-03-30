@@ -92,7 +92,7 @@ main =
           contractType = LAM
         , nominalInterestRate = 0.05
         , dayCountConvention = DCC_E30_360
-        , initialExchangeDate = fromGregorian 2015 1 2
+        , initialExchangeDate = fromGregorian 2020 1 2
         , notionalPrincipal = 1000
 
         -- Calendar
@@ -101,7 +101,7 @@ main =
         , endOfMonthConvention = EOMC_SD -- EOM_SD
 
         -- Contract Identification
-        , statusDate = Just (fromGregorian 2015 1 1)
+        , statusDate = Just (fromGregorian 2020 1 1)
         , contractRole = Just CR_RPA
 
         -- Fees
@@ -112,7 +112,7 @@ main =
         , feeAccrued = Just 0.0
 
         -- Interest
-        , cycleAnchorDateOfInterestPayment = Just (fromGregorian 2016 1 2)
+        , cycleAnchorDateOfInterestPayment = Just (fromGregorian 2021 1 2)
         , cycleOfInterestPayment = Just "1Y+"
         , accruedInterest = Just 0
         , capitalizationEndDate = Nothing
@@ -122,10 +122,10 @@ main =
         , interestCalculationBaseAmount = Nothing
 
         -- Notional Principal
-        , maturityDate = Just (fromGregorian 2026 1 2)
-        , contractDealDate = Just (fromGregorian 2015 1 1)
+        , maturityDate = Just (fromGregorian 2031 1 2)
+        , contractDealDate = Just (fromGregorian 2020 1 1)
         , premiumDiscountAtIED = 0 -- 0
-        , cycleAnchorDateOfPrincipalRedemption = Just (fromGregorian 2016 1 2)
+        , cycleAnchorDateOfPrincipalRedemption = Just (fromGregorian 2021 1 2)
         , cycleOfPrincipalRedemption = Just "1Y+"
         , nextPrincipalRedemptionPayment = Just 100
         , purchaseDate = Nothing

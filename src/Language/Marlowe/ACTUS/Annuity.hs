@@ -5,6 +5,7 @@ module Language.Marlowe.ACTUS.Annuity where
 import Language.Marlowe
 import Data.Maybe
 import Data.Time
+import Data.Time.Clock.System
 import qualified Data.List as List
 import Debug.Trace
 import Flow
@@ -41,6 +42,14 @@ stateInit config@ContractConfig{..} =
       |> initVariable config S_SD
       |> initVariable config S_PRNXT
       |> initVariable config S_IPCB
+
+cardanoEpochStart :: Integer
+cardanoEpochStart = 1506203091
+
+dayToSlot :: Day -> Slot
+dayToSlot d = let
+    (MkSystemTime secs _) = utcToSystemTime (UTCTime d 0)
+    in Slot ((fromIntegral secs - cardanoEpochStart) `div` 20)
 
 generateMarlowe :: [(Day, [Event])] -> ContractState -> ContractConfig -> Contract
 generateMarlowe [] _ _ =
@@ -85,5 +94,5 @@ eventsToMarlowe scheduledEvents date (event : rest) state@ContractState{..}
             (eventsToMarlowe scheduledEvents date rest updatedState config)
           )
         ]
-      (Slot 1)
+      (dayToSlot date)
       Close)
